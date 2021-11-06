@@ -1,0 +1,32 @@
+forest:
+  N: 100
+  T_fire: 0.05
+  mu: 0.005
+
+simulation:
+  tf: 2.5
+  max_iter: 10_000
+
+initial_state:
+  x0: 0.1
+  y0: 0.1
+  r0: 0.05
+  T_init_fire: 0.5
+  c_init: 5
+  n_circles: 5
+
+optimizer:
+  xtol: 0.01
+  ftol: 0.01
+  maxiter: 400
+  maxfun: 400
+
+nelder_mead:
+  alpha: 1
+  beta: 2
+  gamma: 0.5
+
+torczon:
+  alpha: 1
+  beta: 0.5
+  gamma: 2
