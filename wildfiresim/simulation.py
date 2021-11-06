@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from copy import deepcopy
 from dataclasses import dataclass, field
 from typing import List, Optional, Tuple, Union
@@ -59,36 +61,36 @@ class SimulationState:
     def get_fuel_amount(self, dx: float):
         return self.c.sum() * dx * dx
 
+    @staticmethod
+    def create_initial_state(
+        X: np.ndarray,
+        Y: np.ndarray,
+        x0: float,
+        y0: float,
+        r0: float,
+        T_init_fire: float,
+        c_init: float,
+        n_circles: int = 0,
+        rng: Optional[Union[int, np.random.Generator]] = None,
+    ) -> SimulationState:
+        """
+        rng: either None for non-reproducibility, int for seed, or Generator
+        """
+        T = np.zeros(X.shape)
+        T[disk(X, Y, x0, y0, r0)] = T_init_fire
+        c = np.full(X.shape, c_init, dtype=float)
 
-def create_initial_state(
-    X: np.ndarray,
-    Y: np.ndarray,
-    x0: float,
-    y0: float,
-    r0: float,
-    T_init_fire: float,
-    c_init: float,
-    n_circles: int = 0,
-    rng: Optional[Union[int, np.random.Generator]] = None,
-):
-    """
-    rng: either None for non-reproducibility, int for seed, or Generator
-    """
-    T = np.zeros(X.shape)
-    T[disk(X, Y, x0, y0, r0)] = T_init_fire
-    c = np.full(X.shape, c_init, dtype=float)
+        if not isinstance(rng, np.random.Generator):
+            rng = np.random.default_rng(rng)
 
-    if not isinstance(rng, np.random.Generator):
-        rng = np.random.default_rng(rng)
+        for _ in range(n_circles):
+            rr = rng.uniform(0.1, 0.2)
+            xr = rng.uniform(0.1, 0.9)
+            yr = rng.uniform(0.1, 0.9)
+            valr = rng.uniform(-5, 5)
+            c[disk(X, Y, xr, yr, rr)] += valr
 
-    for _ in range(n_circles):
-        rr = rng.uniform(0.1, 0.2)
-        xr = rng.uniform(0.1, 0.9)
-        yr = rng.uniform(0.1, 0.9)
-        valr = rng.uniform(-5, 5)
-        c[disk(X, Y, xr, yr, rr)] += valr
-
-    return SimulationState(T, c)
+        return SimulationState(T, c)
 
 
 StateHistory = List[Tuple[float, SimulationState]]  # list((t, state))
