@@ -23,8 +23,10 @@ def cost_function(x: OptVar, simulation: Simulation, initial_state: SimulationSt
 
 def main():
     seed = 1
+    param_file = "params.yml"
 
-    with open("params.yml", "r") as parfile:
+    print(f"Parsing parameters from {param_file}")
+    with open(param_file, "r") as parfile:
         params = safe_load(parfile)
 
     forest = Forest(**params["forest"])
@@ -33,11 +35,12 @@ def main():
     initial_simplex = np.random.default_rng(seed).random((5, 4))
 
     # Simulation
-    initial_state
+    print("Running the simulation without a firewall")
     simulation.simulate(initial_state=initial_state, track_state=True, verbose=True)
     simulation.animate(nb_frames=100, title="Simulation sans coupe-feu")
 
     # Optimisation
+    print("Running the optimization algorithms")
     funckwargs = {"simulation": simulation, "initial_state": initial_state}
     optimization_results = []
     for optimizer_name, OptimizerClass in (("nelder_mead", NelderMead), ("torczon", Torczon)):
@@ -49,6 +52,7 @@ def main():
         optimizer.animate(initial_state=initial_state, simulation=simulation, title=optimizer_name, show_final_state=True)
         optimization_results.append((optimizer_name, x, f))
 
+    print("Showing the simulation for the best firewalls found")
     for optimizer_name, x, f in optimization_results:
         initial_state_opt = deepcopy(initial_state)
         initial_state_opt.cut_trees(forest.X, forest.Y, *x)
