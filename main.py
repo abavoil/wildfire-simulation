@@ -4,7 +4,12 @@ import numpy as np
 from yaml import safe_load
 
 from wildfiresim.optimization import NelderMead, OptVar, Torczon
-from wildfiresim.simulation import Forest, Simulation, SimulationState
+from wildfiresim.simulation import (
+    Forest,
+    Simulation,
+    SimulationState,
+    create_initial_state,
+)
 
 
 def cost_function(x: OptVar, simulation: Simulation, initial_state: SimulationState) -> float:
@@ -31,7 +36,7 @@ def main():
 
     forest = Forest(**params["forest"])
     simulation = Simulation(forest=forest, **params["simulation"])
-    initial_state = SimulationState(X=forest.X, Y=forest.Y, **params["initial_state"], rng=1)
+    initial_state = create_initial_state(X=forest.X, Y=forest.Y, **params["initial_state"], rng=seed)
     initial_simplex = np.random.default_rng(seed).random((5, 4))
 
     # Simulation

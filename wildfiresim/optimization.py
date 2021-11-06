@@ -9,7 +9,7 @@ from matplotlib.animation import FuncAnimation
 from matplotlib.patches import Rectangle
 from tqdm.std import tqdm
 
-from wildfiresim.get_frames import get_frames
+from wildfiresim.no_history_exception import NoHistoryException
 from wildfiresim.simulation import Simulation, SimulationState
 from wildfiresim.vprint import vprint
 
@@ -38,7 +38,7 @@ class SimplexOptimizer(ABC):
     verbose: bool = False
     history: Optional[CostHistory] = field(init=False)
     pattern: str = "{:>10s}{:>10s}{:>10s}{:>10s}{:>35s}{:>25s}{:>10s}"
-    
+
     # abstract
     name: ClassVar[str] = field(init=False)
 
@@ -67,14 +67,7 @@ class SimplexOptimizer(ABC):
             xspread, fspread = (np.abs(simplex[1:] - best).max(), np.abs(fsimplex[1:] - fbest).max())
 
             self._print_row(
-                nb_iter,
-                ncalls[0],
-                (xspread := np.abs(simplex[1:] - best).max()),
-                (fspread := np.abs(fsimplex[1:] - fbest).max()),
-                movement,
-                (best := simplex[0]),
-                (fbest := fsimplex[0]),
-                verbose=verbose,
+                nb_iter, ncalls[0], xspread, fspread, movement, best, fbest, verbose=verbose,
             )
 
             self._track_cost(nb_iter, best, fbest)
@@ -83,13 +76,13 @@ class SimplexOptimizer(ABC):
                 converged = True
                 break
 
-        reason = (
-            "xspread < self.xtol and fspread < self.ftol"
-            if converged
-            else "too many function calls"
-            if ncalls[0] > self.maxfun
-            else "too many iterations"
-        )
+        if converged:
+            reason = "xspread < self.xtol and fspread < self.ftol"
+        elif ncalls[0] > self.maxfun:
+            reason = "too many function calls"
+        else:
+            reason = "too many iterations"
+
         vprint(f"Stopping minimization at {nb_iter=} ({converged=}) because {reason}.\n", verbose=verbose)
         return simplex[0], fsimplex[0], converged
 
@@ -108,9 +101,12 @@ class SimplexOptimizer(ABC):
         fsimplex.take(ind, out=fsimplex)
 
     def _track_cost(self, nb_iter: int, x: OptVar, cost: float):
-        if self.history is not None:
-            if len(self.history) == 0 or np.any(self.history[-1][1] != x):
-                self.history.append((nb_iter, deepcopy(x), cost))
+        if self.history is None:
+            # tracking is not activated
+            return
+            
+        if len(self.history) == 0 or np.any(self.history[-1][1] != x):
+            self.history.append((nb_iter, deepcopy(x), cost))
 
     def _print_header(self, verbose):
         vprint(
@@ -140,18 +136,13 @@ class SimplexOptimizer(ABC):
             timestamp=True,
         )
 
-    def animate(
-        self, initial_state: SimulationState, simulation: Simulation, nb_frames: int = None, title: str = "", show_final_state: bool = False
-    ) -> FuncAnimation:
+    def animate(self, initial_state: SimulationState, simulation: Simulation, title: str = "", show_final_state: bool = False) -> FuncAnimation:
         """
         If show_final_state == True, display the final distribution instead (every simulation needs to be recomputed)
         """
 
         if self.history is None:
-            raise Exception("Tracking was disabled during the previous call to `simulate`. Retry after activating tracking.")
-
-        if nb_frames is None:
-            nb_frames = len(self.history)
+            raise NoHistoryException()
 
         if show_final_state:
             final_states = [simulation.simulate(initial_state, x) for _, x, _ in tqdm(self.history, desc="Running simulations...")]
@@ -194,7 +185,6 @@ class SimplexOptimizer(ABC):
             ax_title.set_text(title_)
             return fuel, firewall, wind, ax_title
 
-        frames = get_frames(len(self.history), nb_frames)
         anim = FuncAnimation(fig, animate, init_func=init, frames=len(self.history), interval=1000, repeat=True, repeat_delay=2000, blit=True)  # type: ignore
 
         plt.show()
@@ -250,7 +240,7 @@ class NelderMead(SimplexOptimizer):
                     fsimplex[-1] = fcontracted
                 else:
                     movement = "Reduction"
-                    # simplex[:] = (1 - self.gamma) * np.broadcast(best, simplex.shape) + self.gamma * simplex
+                    # for numba, use np.broadcast: simplex[:] = (1 - self.gamma) * np.broadcast(best, simplex.shape) + self.gamma * simplex
                     simplex[:] = (1 - self.gamma) * best + self.gamma * simplex
                     fsimplex[:] = np.array([wrapped_function(x) for x in simplex])
 

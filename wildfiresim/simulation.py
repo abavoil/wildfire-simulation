@@ -1,5 +1,5 @@
 from copy import deepcopy
-from dataclasses import InitVar, dataclass, field
+from dataclasses import dataclass, field
 from typing import List, Optional, Tuple, Union
 
 import matplotlib as mpl
@@ -8,6 +8,7 @@ from matplotlib import pyplot as plt
 from matplotlib.animation import FuncAnimation
 
 from wildfiresim.get_frames import get_frames
+from wildfiresim.no_history_exception import NoHistoryException
 from wildfiresim.vprint import vprint
 
 mpl.rcParams["pcolor.shading"] = "nearest"
@@ -46,33 +47,8 @@ class Forest:
 
 @dataclass
 class SimulationState:
-    X: InitVar[np.ndarray]
-    Y: InitVar[np.ndarray]
-    x0: InitVar[float]
-    y0: InitVar[float]
-    r0: InitVar[float]
-    T_init_fire: InitVar[float]
-    c_init: InitVar[float]
-    n_circles: InitVar[int]
-    # either None for non-reproducibility, int for seed, or Generator
-    rng: InitVar[Union[None, int, np.random.Generator]] = None
-    T: np.ndarray = field(init=False, repr=False)
-    c: np.ndarray = field(init=False, repr=False)
-
-    def __post_init__(self, X, Y, x0, y0, r0, T_init_fire, c_init, n_circles, rng):
-        self.T = np.zeros(X.shape)
-        self.T[disk(X, Y, x0, y0, r0)] = T_init_fire
-        self.c = np.full(X.shape, c_init, dtype=float)
-
-        if not isinstance(rng, np.random.Generator):
-            rng = np.random.default_rng(rng)
-
-        for i in range(n_circles):
-            rr = rng.uniform(0.1, 0.2)
-            xr = rng.uniform(0.1, 0.9)
-            yr = rng.uniform(0.1, 0.9)
-            valr = rng.uniform(-5, 5)
-            self.c[disk(X, Y, xr, yr, rr)] += valr
+    T: np.ndarray = field(repr=False)
+    c: np.ndarray = field(repr=False)
 
     def cut_trees(self, X: np.ndarray, Y: np.ndarray, xmin: float, xmax: float, ymin: float, ymax: float):
         self.c[rect(X, Y, xmin, xmax, ymin, ymax)] = -1
@@ -82,6 +58,37 @@ class SimulationState:
 
     def get_fuel_amount(self, dx: float):
         return self.c.sum() * dx * dx
+
+
+def create_initial_state(
+    X: np.ndarray,
+    Y: np.ndarray,
+    x0: float,
+    y0: float,
+    r0: float,
+    T_init_fire: float,
+    c_init: float,
+    n_circles: int = 0,
+    rng: Optional[Union[int, np.random.Generator]] = None,
+):
+    """
+    rng: either None for non-reproducibility, int for seed, or Generator
+    """
+    T = np.zeros(X.shape)
+    T[disk(X, Y, x0, y0, r0)] = T_init_fire
+    c = np.full(X.shape, c_init, dtype=float)
+
+    if not isinstance(rng, np.random.Generator):
+        rng = np.random.default_rng(rng)
+
+    for _ in range(n_circles):
+        rr = rng.uniform(0.1, 0.2)
+        xr = rng.uniform(0.1, 0.9)
+        yr = rng.uniform(0.1, 0.9)
+        valr = rng.uniform(-5, 5)
+        c[disk(X, Y, xr, yr, rr)] += valr
+
+    return SimulationState(T, c)
 
 
 StateHistory = List[Tuple[float, SimulationState]]  # list((t, state))
@@ -177,7 +184,7 @@ class Simulation:
 
     def animate(self, nb_frames: Optional[int] = 100, title: str = "") -> FuncAnimation:
         if self.history is None:
-            raise Exception("Tracking was disabled during the previous call to `simulate`. Retry after activating tracking.")
+            raise NoHistoryException()
 
         if nb_frames is None:
             nb_frames = len(self.history)
