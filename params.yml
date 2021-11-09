@@ -16,10 +16,8 @@ initial_state:
   n_circles: 5
 
 optimizer:
-  # xtol: 0.01
-  # ftol: 0.01
-  xtol: 1
-  ftol: 1
+  xtol: 0.01
+  ftol: 0.01
   maxiter: 400
   maxfun: 400
 
