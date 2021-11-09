@@ -9,7 +9,6 @@ import numpy as np
 from matplotlib import pyplot as plt
 from matplotlib.animation import FuncAnimation
 from matplotlib.patches import Rectangle
-from numpy.ma.core import count
 from tqdm.std import tqdm
 
 from wildfiresim.no_history_exception import NoHistoryException

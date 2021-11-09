@@ -1,5 +1,5 @@
 from copy import deepcopy
-from typing import List, Tuple, final
+from typing import List, Tuple
 
 import numpy as np
 from yaml import safe_load
