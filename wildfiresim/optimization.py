@@ -206,7 +206,7 @@ class SimplexOptimizer(ABC):
 
         fig, ax = plt.subplots()
 
-        fuel = ax.pcolormesh(X, Y, sim_final_state_no_firewall.c, cmap=plt.cm.YlGn, vmin=0, vmax=10)  # type: ignore
+        fuel = ax.pcolormesh(X, Y, sim_final_state_no_firewall.c, vmin=0, vmax=10, cmap=plt.cm.YlGn, shading="nearest")  # type: ignore
         fuel_cb = fig.colorbar(fuel, ax=ax)
         fuel_cb.set_label("fuel", loc="top")
 

@@ -4,7 +4,6 @@ from copy import deepcopy
 from dataclasses import dataclass, field
 from typing import List, Optional, Union
 
-import matplotlib as mpl
 import numpy as np
 from matplotlib import pyplot as plt
 from matplotlib.animation import FuncAnimation
@@ -12,8 +11,6 @@ from matplotlib.animation import FuncAnimation
 from wildfiresim.get_frames import get_frames
 from wildfiresim.no_history_exception import NoHistoryException
 from wildfiresim.vprint import vprint
-
-mpl.rcParams["pcolor.shading"] = "nearest"
 
 
 def disk(X, Y, x, y, r):
@@ -193,11 +190,11 @@ class Simulation:
         X, Y = self.forest.X, self.forest.Y
         fig, ax = plt.subplots()
 
-        fuel = ax.pcolormesh(X, Y, np.zeros_like(X), cmap=plt.cm.YlGn, vmin=0, vmax=10)  # type: ignore
+        fuel = ax.pcolormesh(X, Y, np.zeros_like(X), vmin=0, vmax=10, cmap=plt.cm.YlGn, shading="nearest")  # type: ignore
         fuel_cb = fig.colorbar(fuel, ax=ax)
         fuel_cb.set_label("fuel", loc="top")
 
-        fire = ax.pcolormesh(X, Y, np.zeros_like(X), cmap=plt.cm.hot, vmin=0, vmax=0.15)  # type: ignore
+        fire = ax.pcolormesh(X, Y, np.zeros_like(X), vmin=0, vmax=0.15, cmap=plt.cm.hot, shading="nearest")  # type: ignore
         fire_cb = fig.colorbar(fire, ax=ax)
         fire_cb.set_label("fire", loc="top")
 
