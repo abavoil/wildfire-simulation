@@ -259,7 +259,7 @@ class SimplexOptimizer(ABC):
         call_counts = [state.nb_calls for state in self.history]  # type: ignore
         costs = [state.get_fbest() for state in self.history]  # type: ignore
 
-        plt.plot(call_counts, costs)
+        plt.step(call_counts, costs, where="post", marker="x", markeredgecolor="k", markersize=10)
         plt.title("Value of the cost function against the number of calls")
         plt.grid(True)
         plt.ylim((0, 1.1 * costs[0]))
