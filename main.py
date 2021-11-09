@@ -1,9 +1,16 @@
 from copy import deepcopy
+from typing import List, Tuple, final
 
 import numpy as np
 from yaml import safe_load
 
-from wildfiresim.optimization import NelderMead, OptVar, Torczon
+from wildfiresim.optimization import (
+    CountedFunction,
+    NelderMead,
+    OptimizationState,
+    OptVar,
+    Torczon,
+)
 from wildfiresim.simulation import Forest, Simulation, SimulationState
 
 
@@ -21,43 +28,58 @@ def cost_function(x: OptVar, simulation: Simulation, initial_state: SimulationSt
     return forest_cost + 10 * area_cost + 100 * position_cost
 
 
+def best_firewall_anim(final_opt_state: OptimizationState, simulation: Simulation, initial_state: SimulationState, optimizer_name: str):
+    initial_state = deepcopy(initial_state)
+    x = final_opt_state.get_best()
+    value = final_opt_state.get_fbest()
+    initial_state.cut_trees(simulation.forest.X, simulation.forest.Y, *x)
+    simulation.simulate(initial_state=initial_state, track_state=True)
+    simulation.animate(nb_frames=100, title=f"Solution de {optimizer_name}\nx = {np.round(x, 2)}, {value =:.2f}")
+
+
+def print_msg(msg: str, *args, indent: int = 0, **kwargs):
+    tab = "\t"
+    line_return = "\n"
+    print(f"{line_return}{tab * indent}*** {msg} ***", *args, **kwargs)
+
+
 def main():
+    show_plots = True
     seed = 1
     param_file = "params.yml"
 
-    print(f"Parsing parameters from {param_file}")
+    print_msg(f"Parsing parameters from {param_file}")
     with open(param_file, "r") as parfile:
         params = safe_load(parfile)
 
     forest = Forest(**params["forest"])
     simulation = Simulation(forest=forest, **params["simulation"])
     initial_state = SimulationState.create_initial_state(X=forest.X, Y=forest.Y, **params["initial_state"], rng=seed)
-    initial_simplex = np.random.default_rng(seed).random((5, 4))
 
     # Simulation
-    print("Running the simulation without a firewall")
+    print_msg("Running the simulation without a firewall")
     simulation.simulate(initial_state=initial_state, track_state=True, verbose=True)
-    simulation.animate(nb_frames=100, title="Simulation sans coupe-feu")
+    if show_plots:
+        simulation.animate(nb_frames=100, title="Simulation sans coupe-feu")
 
     # Optimisation
-    print("Running the optimization algorithms")
+    print_msg("Running the optimization algorithms")
     funckwargs = {"simulation": simulation, "initial_state": initial_state}
-    optimization_results = []
-    for optimizer_name, OptimizerClass in (("nelder_mead", NelderMead), ("torczon", Torczon)):
-        print(optimizer_name)
+    optimization_results: List[Tuple[str, OptimizationState]] = []
+    for optimizer_name, OptimizerClass in (("Nelder-Mead", NelderMead), ("Torczon", Torczon)):
+        print_msg(optimizer_name, indent=1)
         optimizer = OptimizerClass(**{**params["optimizer"], **params[optimizer_name]})
-        x, f, _ = optimizer.minimize(
-            function=cost_function, initial_simplex=initial_simplex, funckwargs=funckwargs, track_cost=True, verbose=True
+        counted_function = CountedFunction(function=cost_function, funckwargs=funckwargs)
+        initial_opt_state = OptimizationState.create_initial_state(counted_function=counted_function, ndim=4, rng=seed)
+        final_opt_state, _ = optimizer.minimize(
+            counted_function=counted_function, initial_opt_state=initial_opt_state, track_cost=True, verbose=True
         )
-        optimizer.animate(initial_state=initial_state, simulation=simulation, title=optimizer_name, show_final_state=True)
-        optimization_results.append((optimizer_name, x, f))
+        if show_plots:
+            optimizer.plot_cost()
+            optimizer.animate(initial_state=initial_state, simulation=simulation, title=optimizer_name)
+            best_firewall_anim(final_opt_state, simulation, initial_state, optimizer_name)
 
-    print("Showing the simulation for the best firewalls found")
-    for optimizer_name, x, f in optimization_results:
-        initial_state_opt = deepcopy(initial_state)
-        initial_state_opt.cut_trees(forest.X, forest.Y, *x)
-        simulation.simulate(initial_state=initial_state_opt, track_state=True)
-        simulation.animate(nb_frames=100, title=f"Solution de {optimizer_name}\nx = {np.round(x, 2)}, {f =:.2f}")
+        optimization_results.append((optimizer_name, final_opt_state))
 
 
 if __name__ == "__main__":

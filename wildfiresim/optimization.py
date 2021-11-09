@@ -1,32 +1,88 @@
+from __future__ import annotations
+
 from abc import ABC, abstractmethod
-from copy import deepcopy
-from dataclasses import dataclass, field
-from typing import Callable, ClassVar, List, Optional, Tuple
+from copy import copy, deepcopy
+from dataclasses import InitVar, dataclass, field
+from typing import Any, Callable, ClassVar, Dict, List, Optional, Tuple, Union
 
 import numpy as np
 from matplotlib import pyplot as plt
 from matplotlib.animation import FuncAnimation
 from matplotlib.patches import Rectangle
+from numpy.ma.core import count
 from tqdm.std import tqdm
 
 from wildfiresim.no_history_exception import NoHistoryException
 from wildfiresim.simulation import Simulation, SimulationState
 from wildfiresim.vprint import vprint
 
-
-def count_func_calls(function, kwargs):
-    ncalls = [0]
-
-    def function_wrapper(x):
-        ncalls[0] += 1
-        return function(x, **kwargs)
-
-    return ncalls, function_wrapper
-
-
 OptVar = np.ndarray
-CostHistory = List[Tuple[int, OptVar, float]]
-CostFunction = Callable[..., float]
+Simplex = np.ndarray
+
+
+class CountedFunction:
+    def __init__(self, function: Callable[..., float], funckwargs: Dict[str, Any]):
+        """
+        function: cost function, (x, **funckwargs) -> cost
+        funckwargs: keyword arguments to be passed to the function alongside x
+        """
+        self.f = function
+        self.funckwargs = funckwargs
+        self._nb_calls = 0
+
+    def __call__(self, x: OptVar) -> float:
+        self._nb_calls += 1
+        return self.f(x, **self.funckwargs)
+
+    def get_nb_calls(self) -> int:
+        return self._nb_calls
+
+
+@dataclass
+class OptimizationState:
+    nb_iter: int
+    nb_calls: int  # not linked to CountedFunction.nb_calls, must be updated at each iteration
+    simplex: Simplex
+    counted_function: InitVar[CountedFunction]
+    fsimplex: np.ndarray = field(init=False)
+
+    def __post_init__(self, counted_function: CountedFunction):
+        self.fsimplex = np.array([counted_function(x) for x in self.simplex])
+        self.sort_simplex()
+
+    def sort_simplex(self):
+        # best: ind = 0
+        # worst: ind = -1
+        ind = np.argsort(self.fsimplex)
+        self.simplex.take(ind, out=self.simplex, axis=0)
+        self.fsimplex.take(ind, out=self.fsimplex)
+
+    def get_best(self) -> OptVar:
+        return self.simplex[0]
+
+    def get_fbest(self) -> float:
+        return self.fsimplex[0]
+
+    def get_spread(self) -> float:
+        return np.abs(self.simplex[1:] - self.get_best()).max()
+
+    def get_fspread(self) -> float:
+        return np.abs(self.fsimplex[1:] - self.get_fbest()).max()
+
+    @staticmethod
+    def create_initial_state(
+        counted_function: CountedFunction, ndim: int, rng: Optional[Union[int, np.random.Generator]] = None,
+    ) -> OptimizationState:
+        """
+        rng: either None for non-reproducibility, int for seed, or Generator
+        """
+
+        if not isinstance(rng, np.random.Generator):
+            rng = np.random.default_rng(rng)
+
+        simplex = rng.uniform(0, 1, (ndim + 1, ndim))
+
+        return OptimizationState(0, 0, simplex=simplex, counted_function=counted_function)
 
 
 @dataclass
@@ -36,99 +92,95 @@ class SimplexOptimizer(ABC):
     maxiter: int = 400
     maxfun: int = 400
     verbose: bool = False
-    history: Optional[CostHistory] = field(init=False)
+    history: Optional[List[OptimizationState]] = field(init=False)
     pattern: str = "{:>10s}{:>10s}{:>10s}{:>10s}{:>35s}{:>25s}{:>10s}"
 
     # abstract
     name: ClassVar[str] = field(init=False)
 
     def minimize(
-        self, function: CostFunction, initial_simplex, funckwargs: dict = {}, track_cost: bool = False, verbose: bool = False
-    ) -> Tuple[np.ndarray, float, bool]:
-        """find x that minimizes function(x, **funcargs)"""
-        # best x is simplex[0]
-        ncalls, wrapped_function = count_func_calls(function, funckwargs)
-
+        self, counted_function: CountedFunction, initial_opt_state: OptimizationState, track_cost: bool = False, verbose: bool = False
+    ) -> Tuple[OptimizationState, bool]:
+        """
+        find x that minimizes function(x, **funcargs)
+        returns the simplex, its value, and a boolean (True if converged, False otherwise)
+        """
         self._print_header(verbose=verbose)
 
-        simplex = initial_simplex.copy()
-        fsimplex = np.array([wrapped_function(x) for x in simplex])
-        self._sort_simplex(simplex, fsimplex)
+        state = copy(initial_opt_state)
 
-        nb_iter = 0
         self.history = [] if track_cost else None
-        converged = False
-        while ncalls[0] < self.maxfun and nb_iter < self.maxiter:
-            nb_iter += 1
+        self._track_state(state)
 
-            movement = self._minimization_step(wrapped_function, simplex, fsimplex)
-            self._sort_simplex(simplex, fsimplex)
-            best, fbest = simplex[0], fsimplex[0]
-            xspread, fspread = (np.abs(simplex[1:] - best).max(), np.abs(fsimplex[1:] - fbest).max())
+        converged = False
+        while counted_function.get_nb_calls() < self.maxfun and state.nb_iter < self.maxiter:
+            state.nb_iter += 1
+            state.nb_calls = counted_function.get_nb_calls()
+            movement = self._minimization_step(counted_function, state)
+            state.sort_simplex()
 
             self._print_row(
-                nb_iter, ncalls[0], xspread, fspread, movement, best, fbest, verbose=verbose,
+                state=state, movement=movement, verbose=verbose,
             )
 
-            self._track_cost(nb_iter, best, fbest)
+            self._track_state(state)
 
-            if xspread < self.xtol and fspread < self.ftol:
+            if state.get_spread() < self.xtol and state.get_fspread() < self.ftol:
                 converged = True
                 break
 
+        # track last state
+        self._track_state(state)
         if converged:
             reason = "xspread < self.xtol and fspread < self.ftol"
-        elif ncalls[0] > self.maxfun:
+        elif counted_function.get_nb_calls() > self.maxfun:
             reason = "too many function calls"
         else:
             reason = "too many iterations"
 
-        vprint(f"Stopping minimization at {nb_iter=} ({converged=}) because {reason}.\n", verbose=verbose)
-        return simplex[0], fsimplex[0], converged
+        if not converged:
+            print("*** WARNING ***\n did not converge \n*** END OF WARNING ***")
+
+        vprint(f"Stopping minimization at nb_iter={state.nb_calls} ({converged=}) because {reason}.\n", verbose=verbose)
+        return state, converged
 
     @abstractmethod
-    def _minimization_step(self, wrapped_function, simplex, fsimplex):
+    def _minimization_step(self, counted_function: CountedFunction, state: OptimizationState) -> str:
         """
         modify simplex and fsimplex to advance one step
         When a vertex of the simplex is updated, its corresponding cost in fsimmplex must be updated aswell
+        Returns the movement that has been executed to go to the next step
         """
+        ...
 
-    def _sort_simplex(self, simplex, fsimplex):
-        # best: ind = 0
-        # worst: ind = -1
-        ind = np.argsort(fsimplex)
-        simplex.take(ind, out=simplex, axis=0)
-        fsimplex.take(ind, out=fsimplex)
-
-    def _track_cost(self, nb_iter: int, x: OptVar, cost: float):
+    def _track_state(self, state: OptimizationState):
         if self.history is None:
             # tracking is not activated
             return
-            
-        if len(self.history) == 0 or np.any(self.history[-1][1] != x):
-            self.history.append((nb_iter, deepcopy(x), cost))
+        if len(self.history) == 0 or np.any(self.history[-1].get_best() != state.get_best()):
+            self.history.append(deepcopy(state))
 
-    def _print_header(self, verbose):
+    def _print_header(self, verbose: bool):
         vprint(
             self.pattern.format("nb_iter", "nb_calls", "x_spread", "f_spread", "movement (current to next)", "best", "f(best)"),
             verbose=verbose,
             timestamp=True,
         )
 
-    def _print_row(self, nb_iter, ncalls, xspread, fspread, movement, best, fbest, verbose):
+    def _print_row(self, state: OptimizationState, movement: str, verbose: bool):
         rounding = 2
         vprint(
             self.pattern.format(
                 *map(
                     str,
                     (
-                        nb_iter,
-                        ncalls,
-                        round(xspread, rounding),
-                        round(fspread, rounding),
+                        state.nb_iter,
+                        state.nb_calls,
+                        round(state.get_spread(), rounding),
+                        round(state.get_fspread(), rounding),
                         movement,
-                        np.round(best, rounding),
-                        round(fbest, rounding),
+                        np.round(state.get_best(), rounding),
+                        round(state.get_fbest(), rounding),
                     ),
                 )
             ),
@@ -136,23 +188,26 @@ class SimplexOptimizer(ABC):
             timestamp=True,
         )
 
-    def animate(self, initial_state: SimulationState, simulation: Simulation, title: str = "", show_final_state: bool = False) -> FuncAnimation:
+    def animate(self, initial_state: SimulationState, simulation: Simulation, title: str = "") -> FuncAnimation:
         """
-        If show_final_state == True, display the final distribution instead (every simulation needs to be recomputed)
+        initial_state: The initial state used to compute the cost function
         """
 
         if self.history is None:
             raise NoHistoryException()
 
-        if show_final_state:
-            final_states = [simulation.simulate(initial_state, x) for _, x, _ in tqdm(self.history, desc="Running simulations...")]
+        # compute all final states in advance
+        sim_final_state_no_firewall = simulation.simulate(initial_state)  # first frame, without rectangle
+        sim_final_states = [
+            simulation.simulate(initial_state, opt_state.get_best()) for opt_state in tqdm(self.history, desc="Running simulations...")
+        ]
+        opt_final_state = self.history[-1]
 
         X, Y = simulation.forest.X, simulation.forest.Y
 
         fig, ax = plt.subplots()
 
-        state = final_states[0] if show_final_state else initial_state  # type: ignore
-        fuel = ax.pcolormesh(X, Y, state.c, cmap=plt.cm.YlGn, vmin=0, vmax=10)  # type: ignore
+        fuel = ax.pcolormesh(X, Y, sim_final_state_no_firewall.c, cmap=plt.cm.YlGn, vmin=0, vmax=10)  # type: ignore
         fuel_cb = fig.colorbar(fuel, ax=ax)
         fuel_cb.set_label("fuel", loc="top")
 
@@ -166,22 +221,28 @@ class SimplexOptimizer(ABC):
 
         ax.set_xlabel("x")
         ax.set_ylabel("y")
-        ax_title = ax.text(0.5, 0.05, "", bbox={"facecolor": "w", "alpha": 0.5, "pad": 5}, transform=ax.transAxes, ha="center")
+        ax_title = ax.text(0.5, 0.05, "", bbox={"facecolor": "w", "alpha": 0.5, "pad": 5}, ha="center")
+        title_pattern = title + "\nnb_call={nb_call}/{tot_nb_call}, cost={cost:.2f}\nx={x}"
 
         def init():
-            fuel.set_array(np.ma.array(X, mask=True))
+            fuel.set_array(sim_final_state_no_firewall.c.ravel())
             firewall.set_bounds(0, 0, 0, 0)
             ax.add_patch(firewall)
             ax_title.set_text("")
             return fuel, firewall, wind, ax_title
 
         def animate(frame: int, *_):
-            k, x, fx = self.history[frame]  # type: ignore
-            state = final_states[frame] if show_final_state else initial_state  # type: ignore
-            fuel.set_array(state.c.ravel())
-            xmin, xmax, ymin, ymax = x
+            opt_state = self.history[frame]  # type: ignore
+            sim_state = sim_final_states[frame]
+            fuel.set_array(sim_state.c.ravel())
+            xmin, xmax, ymin, ymax = opt_state.get_best()
             firewall.set_bounds(xmin, ymin, xmax - xmin, ymax - ymin)
-            title_ = title + "\nstep={step}/{tot_step}, cost={cost:.2f}\nx={x}".format(step=k, tot_step=self.history[-1][0], cost=fx, x=np.round(x, 2))  # type: ignore
+            title_ = title_pattern.format(
+                nb_call=opt_state.nb_calls,
+                tot_nb_call=opt_final_state.nb_calls,
+                cost=opt_state.get_fbest(),
+                x=np.round(opt_state.get_best(), 2),
+            )
             ax_title.set_text(title_)
             return fuel, firewall, wind, ax_title
 
@@ -190,6 +251,22 @@ class SimplexOptimizer(ABC):
         plt.show()
 
         return anim
+
+    def plot_cost(self):
+        if self.history is None:
+            raise NoHistoryException()
+
+        call_counts = [state.nb_calls for state in self.history]  # type: ignore
+        costs = [state.get_fbest() for state in self.history]  # type: ignore
+
+        plt.plot(call_counts, costs)
+        plt.title("Value of the cost function against the number of calls")
+        plt.grid(True)
+        plt.ylim((0, 1.1 * costs[0]))
+        plt.xlim(left=0)
+        plt.xlabel("Number of calls")
+        plt.ylabel("Best value")
+        plt.show()
 
 
 @dataclass
@@ -207,17 +284,19 @@ class NelderMead(SimplexOptimizer):
     beta: float = 2
     gamma: float = 1 / 2
 
-    def _minimization_step(self, wrapped_function, simplex, fsimplex):
+    def _minimization_step(self, counted_function: CountedFunction, state: OptimizationState) -> str:
         # sort already happened
+        simplex = state.simplex
+        fsimplex = state.fsimplex
         best, fbest = simplex[0].copy(), fsimplex[0].copy()
         worst, fworst = simplex[-1].copy(), fsimplex[-1].copy()
 
         barycenter = simplex[:-1].mean(axis=0)  # without worst point
         reflected = (1 + self.alpha) * barycenter - self.alpha * worst
-        freflected = wrapped_function(reflected)
+        freflected = counted_function(reflected)
         if freflected < fbest:
             expansion = (1 + self.beta) * barycenter - self.beta * worst
-            fexpansion = wrapped_function(expansion)
+            fexpansion = counted_function(expansion)
             if fexpansion < freflected:
                 movement = "Expansion"
                 simplex[-1] = expansion
@@ -233,7 +312,7 @@ class NelderMead(SimplexOptimizer):
                 fsimplex[-1] = freflected
             else:
                 contracted = (1 - self.gamma) * barycenter + self.gamma * worst
-                fcontracted = wrapped_function(contracted)
+                fcontracted = counted_function(contracted)
                 if fcontracted < fworst:
                     movement = "Contraction"
                     simplex[-1] = contracted
@@ -242,7 +321,7 @@ class NelderMead(SimplexOptimizer):
                     movement = "Reduction"
                     # for numba, use np.broadcast: simplex[:] = (1 - self.gamma) * np.broadcast(best, simplex.shape) + self.gamma * simplex
                     simplex[:] = (1 - self.gamma) * best + self.gamma * simplex
-                    fsimplex[:] = np.array([wrapped_function(x) for x in simplex])
+                    fsimplex[:] = np.array([counted_function(x) for x in simplex])
 
         return movement
 
@@ -259,17 +338,19 @@ class Torczon(SimplexOptimizer):
     beta: float = 1 / 2
     gamma: float = 2
 
-    def _minimization_step(self, wrapped_function, simplex, fsimplex):
+    def _minimization_step(self, counted_function: CountedFunction, state: OptimizationState) -> str:
         # sort already happened
+        simplex = state.simplex
+        fsimplex = state.fsimplex
         best, fbest = simplex[0].copy(), fsimplex[0].copy()
         reflexion = (1 + self.alpha) * best - self.alpha * simplex
-        freflexion = np.array([wrapped_function(x) for x in reflexion])
+        freflexion = np.array([counted_function(x) for x in reflexion])
         if any(freflexion < fbest):
             movement = "Expansion"
             simplex[:] = (1 + self.gamma) * best - self.gamma * simplex
         else:
             movement = "Contraction"
             simplex[:] = (1 - self.beta) * best + self.beta * simplex
-        fsimplex[:] = np.array([wrapped_function(x) for x in simplex])
+        fsimplex[:] = np.array([counted_function(x) for x in simplex])
 
         return movement

@@ -16,17 +16,19 @@ initial_state:
   n_circles: 5
 
 optimizer:
-  xtol: 0.01
-  ftol: 0.01
+  # xtol: 0.01
+  # ftol: 0.01
+  xtol: 1
+  ftol: 1
   maxiter: 400
   maxfun: 400
 
-nelder_mead:
+Nelder-Mead:
   alpha: 1
   beta: 2
   gamma: 0.5
 
-torczon:
+Torczon:
   alpha: 1
   beta: 0.5
   gamma: 2

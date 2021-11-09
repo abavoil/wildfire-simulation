@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from copy import deepcopy
 from dataclasses import dataclass, field
-from typing import List, Optional, Tuple, Union
+from typing import List, Optional, Union
 
 import matplotlib as mpl
 import numpy as np
@@ -49,6 +49,7 @@ class Forest:
 
 @dataclass
 class SimulationState:
+    t: float
     T: np.ndarray = field(repr=False)
     c: np.ndarray = field(repr=False)
 
@@ -90,10 +91,7 @@ class SimulationState:
             valr = rng.uniform(-5, 5)
             c[disk(X, Y, xr, yr, rr)] += valr
 
-        return SimulationState(T, c)
-
-
-StateHistory = List[Tuple[float, SimulationState]]  # list((t, state))
+        return SimulationState(0, T, c)
 
 
 @dataclass
@@ -103,7 +101,7 @@ class Simulation:
     forest: Forest
     tf: float
     max_iter: int
-    history: Optional[StateHistory] = field(init=False)
+    history: Optional[List[SimulationState]] = field(init=False)
 
     def simulate(
         self, initial_state: SimulationState, x: Optional[np.ndarray] = None, track_state: bool = False, verbose: bool = False
@@ -114,7 +112,7 @@ class Simulation:
             state.cut_trees(self.forest.X, self.forest.Y, *x)
 
         self.history = [] if track_state else None
-        self._track_state(0, state)
+        self._track_state(state)
         for k, t in enumerate(np.arange(self.forest.dt, self.tf + self.forest.dt, self.forest.dt)):
             # pas de simulation
             self._simulation_step(state)
@@ -127,7 +125,7 @@ class Simulation:
                 stop_msg = f"T < T_fire everywhere."
 
             # ajout à l'historique si le tracking est activé
-            self._track_state(t, state)
+            self._track_state(state)
 
             # arrêt
             if stop_msg is not None:
@@ -171,6 +169,7 @@ class Simulation:
         reaction_T[np.logical_and(on_fire, c < 0)] = -5
 
         # mise à jour
+        state.t += dt
         T_mid += dt * ((diffusion + advection) + (reaction_T * T)[mid, mid])
         c[on_fire] += dt * -100
 
@@ -180,9 +179,9 @@ class Simulation:
         T[0, :] = T[1, :]
         T[-1, :] = T[-2, :]
 
-    def _track_state(self, t: float, state: SimulationState):
+    def _track_state(self, state: SimulationState):
         if self.history is not None:
-            self.history.append((t, deepcopy(state)))
+            self.history.append(deepcopy(state))
 
     def animate(self, nb_frames: Optional[int] = 100, title: str = "") -> FuncAnimation:
         if self.history is None:
@@ -220,9 +219,9 @@ class Simulation:
             return fuel, fire, wind, ax_text_info
 
         def animate(frame: int, *_):
-            t, state = self.history[frame]  # type: ignore
+            state = self.history[frame]  # type: ignore
             pct = int(100 * (frame + 1) / len(self.history))  # type: ignore
-            ax_text_info.set_text("t = {t:.2f} s, {pct}%".format(t=t, pct=pct))
+            ax_text_info.set_text("t = {t:.2f} s, {pct}%".format(t=state.t, pct=pct))
             fuel.set_array(state.c.ravel())
             fire.set_array(state.get_masked_T(self.forest.T_fire).ravel())
             return fuel, fire, wind, ax_text_info
