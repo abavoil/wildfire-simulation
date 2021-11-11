@@ -328,12 +328,13 @@ class NelderMead(SimplexOptimizer):
 @dataclass
 class Torczon(SimplexOptimizer):
     """
+    https://www.researchgate.net/publication/2674306_Direct_Search_Methods_On_Parallel_Machines
     Pluses over Nelder-Mead:
         - paralellizable
         - proof of convergence toward a local minimum
     """
 
-    alpha: float = 1  # reflexion
+    alpha: float = 1 / 2  # reflexion, should be 1 but does not converge in that case
     beta: float = 2  # expansion
     gamma: float = 1 / 2  # contraction
 
@@ -346,12 +347,10 @@ class Torczon(SimplexOptimizer):
         freflexion = np.array([counted_function(x) for x in reflexion])
         if any(freflexion < fbest):
             movement = "Expansion"
-            # simplex[:] = (1 + self.beta) * best - self.beta * simplex
-            simplex[:] = (1 - self.beta) * best + self.beta * reflexion
+            simplex[:] = (1 + self.beta) * best - self.beta * simplex
         else:
             movement = "Contraction"
-            # simplex[:] = (1 - self.gamma) * best + self.gamma * simplex
-            simplex[:] = (1 - self.gamma) * best + self.gamma * reflexion
+            simplex[:] = (1 - self.gamma) * best + self.gamma * simplex
         fsimplex[:] = np.array([counted_function(x) for x in simplex])
 
         return movement
