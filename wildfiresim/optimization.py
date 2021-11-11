@@ -279,9 +279,9 @@ class NelderMead(SimplexOptimizer):
         - costly (many function calls)
     """
 
-    alpha: float = 1
-    beta: float = 2
-    gamma: float = 1 / 2
+    alpha: float = 1  # reflexion
+    beta: float = 2  # expansion
+    gamma: float = 1 / 2  # contraction/reduction
 
     def _minimization_step(self, counted_function: CountedFunction, state: OptimizationState) -> str:
         # sort already happened
@@ -333,9 +333,9 @@ class Torczon(SimplexOptimizer):
         - proof of convergence toward a local minimum
     """
 
-    alpha: float = 1 / 2
-    beta: float = 1 / 2
-    gamma: float = 2
+    alpha: float = 1  # reflexion
+    beta: float = 2  # expansion
+    gamma: float = 1 / 2  # contraction
 
     def _minimization_step(self, counted_function: CountedFunction, state: OptimizationState) -> str:
         # sort already happened
@@ -346,10 +346,12 @@ class Torczon(SimplexOptimizer):
         freflexion = np.array([counted_function(x) for x in reflexion])
         if any(freflexion < fbest):
             movement = "Expansion"
-            simplex[:] = (1 + self.gamma) * best - self.gamma * simplex
+            # simplex[:] = (1 + self.beta) * best - self.beta * simplex
+            simplex[:] = (1 - self.beta) * best + self.beta * reflexion
         else:
             movement = "Contraction"
-            simplex[:] = (1 - self.beta) * best + self.beta * simplex
+            # simplex[:] = (1 - self.gamma) * best + self.gamma * simplex
+            simplex[:] = (1 - self.gamma) * best + self.gamma * reflexion
         fsimplex[:] = np.array([counted_function(x) for x in simplex])
 
         return movement
