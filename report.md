@@ -1,8 +1,11 @@
 ---
-title: "Optimization du placement et du dimensionnement d'un coupe-feu"
+title: "Projet de Conception Optimale"
 author: "Antonin Bavoil"
+geometry: margin=2.5cm
 date: "12 novembre 2021"
 ---
+
+\newpage{}
 
 # Introduction
 
@@ -16,11 +19,13 @@ Dans un premier temps, on va modéliser le feu de forêt par un couple d'équati
 ### Champs considérés
 
 On considère deux champs scalaires :
+
  - la température $T(x, y, t)$
  - la matière combustible $c(x, y, t)$
 avec $t \in I = [0, 2.5]$ et $(x, y) \in \Omega = [0, 1]^2$.
 
 On considère aussi un champ vectoriel :
+
  - le vent $\overrightarrow{V}(x, y) = (u(x, y), v(x, y))$ avec $u(x, y) = \cos(\pi y)$ et $v(x, y) = 0.6 \sin(\pi (x + 0.2) / 2)$.
 
 
@@ -114,10 +119,12 @@ $$T_{i,j}^{n+1} = T_{i,j}^n + \Delta t \, \phi(T_{i,j}^n, T_{i-1,j}^n, T_{i+1,j}
 ### Conditions aux limites
 
 Pour $0 \leq i \leq N_x$ :
+
 - en $y = 0$, $T_{i,0} = T_{i,1}$
 - en $y = 1$, $T_{i,N_y} = T_{i,Ny-1}$
 
 Pour $0 \leq j \leq N_y$
+
  - en $x = 0$, $T_{0,j} = T_{1,j}$
  - en $x = 1$, $T_{N_y,j} = T_{N_y-1,j}$
 
@@ -130,6 +137,7 @@ $$c_{i,j}^{n+1} = c_{i,j}^n + \Delta t \, \tilde{\phi}(T_{i,j}^n, c_{i,j}^n)$$
 ### Stabilité
 
 Le schéma d'Euler explicite est stable lorsque $\Delta t \geq \min(\Delta t_c, \Delta t_d) / 4$ où :
+
  - $\Delta t_c = \dfrac{h}{\max \left(\| \overrightarrow{V} \|\right)}$, $h = \min(\Delta x, \Delta y)$ (convection)
  - $\Delta t_d = \dfrac{h}{2 \mu}$ (diffusion)
 
@@ -137,7 +145,7 @@ Le schéma d'Euler explicite est stable lorsque $\Delta t \geq \min(\Delta t_c, 
 
 L'algorithme d'implémentation est le suivant.
 
-```
+~~~~
 Initialisation de T, c, u, v
 Calcul de delta_t
 Boucle temporelle (n)
@@ -152,7 +160,7 @@ Boucle temporelle (n)
         Calcul de c au temps suivant
     Si pour tout (i, j), T[i,j] < 0.05 alors
         Quitter la boucle temporelle
-```
+~~~~
 
 Le critère d'arrêt sur le température sert à ne pas avoir de simulation inutilement trop longue. En effet, si elle est inférieure au point d'inflammation partout, la loi de réaction ne peut plus se faire, donc la température ne peut plus repasser au dessus du point d'inflammation, est donc plus aucun combustible ne sera consommé.
 
