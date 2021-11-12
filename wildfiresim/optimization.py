@@ -158,7 +158,7 @@ class SimplexOptimizer(ABC):
 
     def _print_header(self, verbose: bool):
         vprint(
-            self.pattern.format("nb_iter", "nb_calls", "x_spread", "f_spread", "movement (current to next)", "best", "f(best)"),
+            self.pattern.format("nb_iter", "nb_calls", "x_spread", "f_spread", "movement (prev to curr)", "best", "f(best)"),
             verbose=verbose,
             timestamp=True,
         )
