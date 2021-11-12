@@ -2,11 +2,12 @@ from __future__ import annotations
 
 from copy import deepcopy
 from dataclasses import dataclass, field
+from time import sleep
 from typing import List, Optional, Union
 
 import numpy as np
 from matplotlib import pyplot as plt
-from matplotlib.animation import FuncAnimation
+from matplotlib.animation import FuncAnimation, PillowWriter
 
 from wildfiresim.get_frames import get_frames
 from wildfiresim.no_history_exception import NoHistoryException
@@ -180,7 +181,7 @@ class Simulation:
         if self.history is not None:
             self.history.append(deepcopy(state))
 
-    def animate(self, nb_frames: Optional[int] = 100, title: str = "") -> FuncAnimation:
+    def animate(self, nb_frames: Optional[int] = 100, title: str = "", filepath: Optional[str] = None) -> FuncAnimation:
         if self.history is None:
             raise NoHistoryException()
 
@@ -208,7 +209,8 @@ class Simulation:
         ax.set_ylabel("y")
         ax.set_title("")
         ax.set_title(title)
-        ax_text_info = ax.text(0.5, 0.94, "", bbox={"facecolor": "w", "alpha": 0.5, "pad": 5}, transform=ax.transAxes, ha="center")
+        ax.set_aspect("equal")
+        ax_text_info = ax.text(0.5, 0.05, "", bbox={"facecolor": "w", "alpha": 0.5, "pad": 5}, ha="center")
 
         def init():
             fuel.set_array(np.array([]))
@@ -223,9 +225,15 @@ class Simulation:
             fire.set_array(state.get_masked_T(self.forest.T_fire).ravel())
             return fuel, fire, wind, ax_text_info
 
+        fps = 30
         frames = get_frames(len(self.history), nb_frames)
-        anim = FuncAnimation(fig, animate, init_func=init, frames=frames, interval=17, repeat=True, repeat_delay=1000, blit=True)  # type: ignore
+        anim = FuncAnimation(fig, animate, init_func=init, frames=frames, interval=1000 / 30, repeat=True, repeat_delay=1000, blit=True)  # type: ignore
 
-        plt.show()
+        if filepath is not None:
+            plt.subplots(figsize=(8, 6))
+            anim.save(filename=filepath, writer="ffmpeg", fps=fps)
+            sleep(1)
+        else:
+            plt.show()
 
         return anim

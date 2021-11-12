@@ -28,5 +28,5 @@ Nelder-Mead:
 
 Torczon:
   alpha: 1
-  beta: 0.5
-  gamma: 2
+  beta: 2
+  gamma: 0.5

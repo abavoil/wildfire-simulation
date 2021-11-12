@@ -86,16 +86,13 @@ class OptimizationState:
 
 @dataclass
 class SimplexOptimizer(ABC):
-    xtol: float = 1e-3
-    ftol: float = 1e-3
-    maxiter: int = 400
-    maxfun: int = 400
-    verbose: bool = False
+    xtol: float
+    ftol: float
+    maxiter: int
+    maxfun: int
     history: Optional[List[OptimizationState]] = field(init=False)
-    pattern: str = "{:>10s}{:>10s}{:>10s}{:>10s}{:>35s}{:>25s}{:>10s}"
 
-    # abstract
-    name: ClassVar[str] = field(init=False)
+    pattern: ClassVar[str] = "{:>10s}{:>10s}{:>10s}{:>10s}{:>35s}{:>25s}{:>10s}"  # for printing infos in a table format
 
     def minimize(
         self, counted_function: CountedFunction, initial_opt_state: OptimizationState, track_cost: bool = False, verbose: bool = False
@@ -104,13 +101,13 @@ class SimplexOptimizer(ABC):
         find x that minimizes function(x, **funcargs)
         returns the simplex, its value, and a boolean (True if converged, False otherwise)
         """
-        self._print_header(verbose=verbose)
 
         state = copy(initial_opt_state)
 
         self.history = [] if track_cost else None
         self._track_state(state)
 
+        self._print_header(verbose=verbose)
         converged = False
         while counted_function.get_nb_calls() < self.maxfun and state.nb_iter < self.maxiter:
             state.nb_iter += 1
@@ -187,7 +184,7 @@ class SimplexOptimizer(ABC):
             timestamp=True,
         )
 
-    def animate(self, initial_state: SimulationState, simulation: Simulation, title: str = "") -> FuncAnimation:
+    def animate(self, initial_state: SimulationState, simulation: Simulation, title: str = "", filepath: Optional[str] = None) -> FuncAnimation:
         """
         initial_state: The initial state used to compute the cost function
         """
@@ -220,15 +217,17 @@ class SimplexOptimizer(ABC):
 
         ax.set_xlabel("x")
         ax.set_ylabel("y")
-        ax_title = ax.text(0.5, 0.05, "", bbox={"facecolor": "w", "alpha": 0.5, "pad": 5}, ha="center")
-        title_pattern = title + "\nnb_call={nb_call}/{tot_nb_call}, cost={cost:.2f}\nx={x}"
+        ax.set_title(title)
+        ax.set_aspect("equal")
+        ax_text_info = ax.text(0.5, 0.05, "", bbox={"facecolor": "w", "alpha": 0.5, "pad": 5}, ha="center")
+        title_pattern = "nb_call={nb_call}/{tot_nb_call}, cost={cost:.2f}\nx={x}"
 
         def init():
             fuel.set_array(sim_final_state_no_firewall.c.ravel())
             firewall.set_bounds(0, 0, 0, 0)
             ax.add_patch(firewall)
-            ax_title.set_text("")
-            return fuel, firewall, wind, ax_title
+            ax_text_info.set_text("")
+            return fuel, firewall, wind, ax_text_info
 
         def animate(frame: int, *_):
             opt_state = self.history[frame]  # type: ignore
@@ -236,22 +235,28 @@ class SimplexOptimizer(ABC):
             fuel.set_array(sim_state.c.ravel())
             xmin, xmax, ymin, ymax = opt_state.get_best()
             firewall.set_bounds(xmin, ymin, xmax - xmin, ymax - ymin)
-            title_ = title_pattern.format(
-                nb_call=opt_state.nb_calls,
-                tot_nb_call=opt_final_state.nb_calls,
-                cost=opt_state.get_fbest(),
-                x=np.round(opt_state.get_best(), 2),
+            ax_text_info.set_text(
+                title_pattern.format(
+                    nb_call=opt_state.nb_calls,
+                    tot_nb_call=opt_final_state.nb_calls,
+                    cost=opt_state.get_fbest(),
+                    x=np.round(opt_state.get_best(), 2),
+                )
             )
-            ax_title.set_text(title_)
-            return fuel, firewall, wind, ax_title
+            return fuel, firewall, wind, ax_text_info
 
-        anim = FuncAnimation(fig, animate, init_func=init, frames=len(self.history), interval=1000, repeat=True, repeat_delay=2000, blit=True)  # type: ignore
+        fps = 1
+        anim = FuncAnimation(fig, animate, init_func=init, frames=len(self.history), interval=1000 / fps, repeat=True, repeat_delay=2000, blit=True)  # type: ignore
 
-        plt.show()
+        if filepath is not None:
+            plt.subplots(figsize=(8, 6))
+            anim.save(filename=filepath, writer="ffmpeg", fps=fps)
+        else:
+            plt.show()
 
         return anim
 
-    def plot_cost(self):
+    def plot_cost(self, filepath: Optional[str] = None):
         if self.history is None:
             raise NoHistoryException()
 
@@ -265,7 +270,11 @@ class SimplexOptimizer(ABC):
         plt.xlim(left=0)
         plt.xlabel("Number of calls")
         plt.ylabel("Best value")
-        plt.show()
+        if filepath is not None:
+            plt.subplots(figsize=(8, 6))
+            plt.savefig(filepath)
+        else:
+            plt.show()
 
 
 @dataclass
@@ -279,9 +288,9 @@ class NelderMead(SimplexOptimizer):
         - costly (many function calls)
     """
 
-    alpha: float = 1  # reflexion
-    beta: float = 2  # expansion
-    gamma: float = 1 / 2  # contraction/reduction
+    alpha: float  # reflexion, 1
+    beta: float  # expansion, 2
+    gamma: float  # contraction/reduction, 1/2
 
     def _minimization_step(self, counted_function: CountedFunction, state: OptimizationState) -> str:
         # sort already happened
@@ -334,9 +343,9 @@ class Torczon(SimplexOptimizer):
         - proof of convergence toward a local minimum
     """
 
-    alpha: float = 1 / 2  # reflexion, should be 1 but does not converge in that case
-    beta: float = 2  # expansion
-    gamma: float = 1 / 2  # contraction
+    alpha: float  # reflexion, 1
+    beta: float  # expansion, 2
+    gamma: float  # contraction, 1/2
 
     def _minimization_step(self, counted_function: CountedFunction, state: OptimizationState) -> str:
         # sort already happened
