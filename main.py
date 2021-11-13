@@ -57,7 +57,7 @@ def make_file_path(filename: str, ext: str, show_plots: bool):
 
 def main():
     show_plots = True
-    seed = 1
+    seed = 3
     param_file = "params.yml"
 
     print_msg(f"Parsing parameters from {param_file}")
@@ -80,7 +80,10 @@ def main():
         print_msg(optimizer_name, indent=1)
         optimizer = OptimizerClass(**{**params["optimizer"], **params[optimizer_name]})
         counted_function = CountedFunction(function=cost_function, funckwargs=funckwargs)
-        initial_opt_state = OptimizationState.create_initial_state(counted_function=counted_function, ndim=4, rng=seed)
+        # initial_opt_state = OptimizationState.create_initial_state(counted_function=counted_function, ndim=4, rng=seed)
+        initial_opt_state = OptimizationState.create_initial_state_nonrng(
+            counted_function=counted_function, x0=np.array([0.4, 0.6, 0.5, 0.7]), dist=0.3
+        )
         final_opt_state, _ = optimizer.minimize(
             counted_function=counted_function, initial_opt_state=initial_opt_state, track_cost=True, verbose=True
         )

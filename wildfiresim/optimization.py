@@ -83,6 +83,17 @@ class OptimizationState:
 
         return OptimizationState(0, 0, simplex=simplex, counted_function=counted_function)
 
+    @staticmethod
+    def create_initial_state_nonrng(counted_function: CountedFunction, x0: OptVar, dist: float) -> OptimizationState:
+        """right-angled isocele simplex around x0 with edges of length 2*dist"""
+        ndim = x0.size
+        simplex = np.repeat(x0.reshape(1, -1), ndim + 1, 0)
+        simplex[0] -= dist
+        for i in range(ndim):
+            simplex[i + 1][i] += dist
+
+        return OptimizationState(0, 0, simplex=simplex, counted_function=counted_function)
+
 
 @dataclass
 class SimplexOptimizer(ABC):
@@ -281,7 +292,7 @@ class SimplexOptimizer(ABC):
 class NelderMead(SimplexOptimizer):
     """
     Pluses:
-        - no gradient -> not sennsitive to noise
+        - no gradient -> not sensitive to noise
         - simple (no maths)
     Minuses :
         - cases of convergence toward a non-stationary point (grad != 0)
