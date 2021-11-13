@@ -145,13 +145,13 @@ Le schéma d'Euler explicite est stable lorsque $\Delta t \geq \min(\Delta t_c, 
 
 L'algorithme d'implémentation est le suivant.
 
-~~~~
+````
 Initialisation de T, c, u, v
 Calcul de delta_t
 Boucle temporelle (n)
     Boucle spatiale (i, j)
-        Calcul de Laplacien_T et grad_T
-        Calcul de T au temps suivant
+        Calcul de Laplacien_T[i,j] et grad_T[i,j]
+        Calcul de T[i,j] au temps suivant
     Boucle (i)
         Conditions aux limites en y=0 et y=1
     Boucle (j)
@@ -160,9 +160,20 @@ Boucle temporelle (n)
         Calcul de c au temps suivant
     Si pour tout (i, j), T[i,j] < 0.05 alors
         Quitter la boucle temporelle
-~~~~
+````
 
-Le critère d'arrêt sur le température sert à ne pas avoir de simulation inutilement trop longue. En effet, si elle est inférieure au point d'inflammation partout, la loi de réaction ne peut plus se faire, donc la température ne peut plus repasser au dessus du point d'inflammation, est donc plus aucun combustible ne sera consommé.
+Le critère d'arrêt sur le température sert à éviter une simulation inutilement trop longue. En effet, si elle est inférieure au point d'inflammation partout, la loi de réaction ne peut plus se faire, donc la température ne peut plus repasser au dessus du point d'inflammation, est donc plus aucun combustible ne sera consommé.
+
+## Résultats
+
+J'ai utilisé Python pour l'implémentation. En vectorisant le code de la simulation, j'arrive à faire un pas de temps en environ 400 &mu;s. Il faut entre 500 et 1000 pas de temps pour finir la simulation donc une simulation prend entre 250 et 500 ms. Voici la visualisation de cette simulation :
+
+<video src="https://raw.githubusercontent.com/abavoil/wildfire-simulation/master/report_media/simulation.mp4" controls loop></video>
+
+
+La température du feu chute bien à t=0.3 s lorsqu'il arrive sur une zone moins dense en combustible. De plus, il suit bien le vent représenté par les flèches.
+
+La vidéo s'arrête à 90% lorsqu'il reste du feu mais il s'agit d'un bug du côté de l'enregistrement de la vidéo car on voit la simulation se terminer si on la visualise directement lors de l'exécution.
 
 # Optimisation
 
