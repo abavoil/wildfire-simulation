@@ -245,7 +245,7 @@ class SimplexOptimizer(ABC):
             )
             return fuel, firewall, wind, ax_text_info
 
-        fps = 1
+        fps = 2
         anim = FuncAnimation(fig, animate, init_func=init, frames=len(self.history), interval=1000 / fps, repeat=True, repeat_delay=2000, blit=True)  # type: ignore
 
         if filepath is not None:
@@ -256,7 +256,7 @@ class SimplexOptimizer(ABC):
 
         return anim
 
-    def plot_cost(self, filepath: Optional[str] = None):
+    def plot_cost(self, title: str = "", filepath: Optional[str] = None):
         if self.history is None:
             raise NoHistoryException()
 
@@ -264,14 +264,14 @@ class SimplexOptimizer(ABC):
         costs = [state.get_fbest() for state in self.history]  # type: ignore
 
         plt.step(call_counts, costs, where="post", marker="x", markeredgecolor="k", markersize=10)
-        plt.title("Value of the cost function against the number of calls")
+        plt.title(title + "\nValue of the cost function against the number of calls")
         plt.grid(True)
         plt.ylim((0, 1.1 * costs[0]))
         plt.xlim(left=0)
         plt.xlabel("Number of calls")
         plt.ylabel("Best value")
         if filepath is not None:
-            plt.subplots(figsize=(8, 6))
+            # plt.subplots(figsize=(8, 6))
             plt.savefig(filepath)
         else:
             plt.show()

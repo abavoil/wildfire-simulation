@@ -56,7 +56,7 @@ def make_file_path(filename: str, ext: str, show_plots: bool):
 
 
 def main():
-    show_plots = False
+    show_plots = True
     seed = 1
     param_file = "params.yml"
 
@@ -85,7 +85,7 @@ def main():
             counted_function=counted_function, initial_opt_state=initial_opt_state, track_cost=True, verbose=True
         )
 
-        optimizer.plot_cost(filepath=make_file_path(f"{optimizer_name} cost", "png", show_plots))
+        optimizer.plot_cost(title=optimizer_name, filepath=make_file_path(f"{optimizer_name} cost", "png", show_plots))
         optimizer.animate(
             initial_state=initial_state,
             simulation=simulation,

@@ -7,7 +7,7 @@ from typing import List, Optional, Union
 
 import numpy as np
 from matplotlib import pyplot as plt
-from matplotlib.animation import FuncAnimation, PillowWriter
+from matplotlib.animation import FuncAnimation
 
 from wildfiresim.get_frames import get_frames
 from wildfiresim.no_history_exception import NoHistoryException
@@ -197,7 +197,7 @@ class Simulation:
 
         fire = ax.pcolormesh(X, Y, np.zeros_like(X), vmin=0, vmax=0.15, cmap=plt.cm.hot, shading="nearest")  # type: ignore
         fire_cb = fig.colorbar(fire, ax=ax)
-        fire_cb.set_label("fire", loc="top")
+        fire_cb.set_label("temperature", loc="top")
 
         n_arrows = 6
         wind_ind = np.zeros(X.shape, dtype=bool)
