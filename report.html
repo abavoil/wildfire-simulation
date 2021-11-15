@@ -1,0 +1,461 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" lang="" xml:lang="">
+<head>
+  <meta charset="utf-8" />
+  <meta name="generator" content="pandoc" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes" />
+  <meta name="author" content="Antonin Bavoil" />
+  <title>Projet de Conception Optimale</title>
+  <style>
+    html {
+      line-height: 1.5;
+      font-family: Georgia, serif;
+      font-size: 20px;
+      color: #1a1a1a;
+      background-color: #fdfdfd;
+    }
+    body {
+      margin: 0 auto;
+      max-width: 36em;
+      padding-left: 50px;
+      padding-right: 50px;
+      padding-top: 50px;
+      padding-bottom: 50px;
+      hyphens: auto;
+      word-wrap: break-word;
+      text-rendering: optimizeLegibility;
+      font-kerning: normal;
+    }
+    @media (max-width: 600px) {
+      body {
+        font-size: 0.9em;
+        padding: 1em;
+      }
+    }
+    @media print {
+      body {
+        background-color: transparent;
+        color: black;
+        font-size: 12pt;
+      }
+      p, h2, h3 {
+        orphans: 3;
+        widows: 3;
+      }
+      h2, h3, h4 {
+        page-break-after: avoid;
+      }
+    }
+    p {
+      margin: 1em 0;
+    }
+    a {
+      color: #1a1a1a;
+    }
+    a:visited {
+      color: #1a1a1a;
+    }
+    img {
+      max-width: 100%;
+    }
+    h1, h2, h3, h4, h5, h6 {
+      margin-top: 1.4em;
+    }
+    h5, h6 {
+      font-size: 1em;
+      font-style: italic;
+    }
+    h6 {
+      font-weight: normal;
+    }
+    ol, ul {
+      padding-left: 1.7em;
+      margin-top: 1em;
+    }
+    li > ol, li > ul {
+      margin-top: 0;
+    }
+    blockquote {
+      margin: 1em 0 1em 1.7em;
+      padding-left: 1em;
+      border-left: 2px solid #e6e6e6;
+      color: #606060;
+    }
+    code {
+      font-family: Menlo, Monaco, 'Lucida Console', Consolas, monospace;
+      font-size: 85%;
+      margin: 0;
+    }
+    pre {
+      margin: 1em 0;
+      overflow: auto;
+    }
+    pre code {
+      padding: 0;
+      overflow: visible;
+    }
+    .sourceCode {
+     background-color: transparent;
+     overflow: visible;
+    }
+    hr {
+      background-color: #1a1a1a;
+      border: none;
+      height: 1px;
+      margin: 1em 0;
+    }
+    table {
+      margin: 1em 0;
+      border-collapse: collapse;
+      width: 100%;
+      overflow-x: auto;
+      display: block;
+      font-variant-numeric: lining-nums tabular-nums;
+    }
+    table caption {
+      margin-bottom: 0.75em;
+    }
+    tbody {
+      margin-top: 0.5em;
+      border-top: 1px solid #1a1a1a;
+      border-bottom: 1px solid #1a1a1a;
+    }
+    th {
+      border-top: 1px solid #1a1a1a;
+      padding: 0.25em 0.5em 0.25em 0.5em;
+    }
+    td {
+      padding: 0.125em 0.5em 0.25em 0.5em;
+    }
+    header {
+      margin-bottom: 4em;
+      text-align: center;
+    }
+    #TOC li {
+      list-style: none;
+    }
+    #TOC a:not(:hover) {
+      text-decoration: none;
+    }
+    code{white-space: pre-wrap;}
+    span.smallcaps{font-variant: small-caps;}
+    span.underline{text-decoration: underline;}
+    div.column{display: inline-block; vertical-align: top; width: 50%;}
+    div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+    ul.task-list{list-style: none;}
+  </style>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.11.1/katex.min.js"></script>
+  <script>document.addEventListener("DOMContentLoaded", function () {
+   var mathElements = document.getElementsByClassName("math");
+   var macros = [];
+   for (var i = 0; i < mathElements.length; i++) {
+    var texText = mathElements[i].firstChild;
+    if (mathElements[i].tagName == "SPAN") {
+     katex.render(texText.data, mathElements[i], {
+      displayMode: mathElements[i].classList.contains('display'),
+      throwOnError: false,
+      macros: macros,
+      fleqn: false
+     });
+  }}});
+  </script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.11.1/katex.min.css" />
+  <!--[if lt IE 9]>
+    <script src="//cdnjs.cloudflare.com/ajax/libs/html5shiv/3.7.3/html5shiv-printshiv.min.js"></script>
+  <![endif]-->
+</head>
+<body>
+<header id="title-block-header">
+<h1 class="title">Projet de Conception Optimale</h1>
+<p class="author">Antonin Bavoil</p>
+<p class="date">12 novembre 2021</p>
+</header>
+<nav id="TOC" role="doc-toc">
+<ul>
+<li><a href="#introduction">Introduction</a></li>
+<li><a href="#simulation">Simulation</a>
+<ul>
+<li><a href="#modèle-continu">Modèle continu</a>
+<ul>
+<li><a href="#champs-considérés">Champs considérés</a></li>
+<li><a href="#conditions-initiales">Conditions initiales</a></li>
+<li><a href="#dynamique">Dynamique</a></li>
+</ul></li>
+<li><a href="#discrétisation">Discrétisation</a>
+<ul>
+<li><a href="#espace">Espace</a></li>
+<li><a href="#temps">Temps</a></li>
+<li><a href="#conditions-aux-limites-1">Conditions aux limites</a></li>
+<li><a href="#mise-à-jour-du-combustible">Mise à jour du combustible</a></li>
+<li><a href="#stabilité">Stabilité</a></li>
+</ul></li>
+<li><a href="#implémentation">Implémentation</a></li>
+<li><a href="#résultats">Résultats</a></li>
+</ul></li>
+<li><a href="#optimisation">Optimisation</a>
+<ul>
+<li><a href="#problème-doptimisation">Problème d’optimisation</a></li>
+<li><a href="#algorithmes-du-simplex">Algorithmes du simplex</a>
+<ul>
+<li><a href="#nerlder-mead">Nerlder-Mead</a></li>
+<li><a href="#torczon">Torczon</a></li>
+<li><a href="#critères-darrêt">Critères d’arrêt</a></li>
+<li><a href="#initialisation-du-simplex">Initialisation du simplex</a></li>
+<li><a href="#influence-de-la-position-de-linitilisation">Influence de la position de l’initilisation</a></li>
+<li><a href="#influence-de-la-taille-initiale-du-simplex">Influence de la taille initiale du simplex</a></li>
+<li><a href="#une-simulation">Une simulation</a></li>
+</ul></li>
+</ul></li>
+<li><a href="#conclusion">Conclusion</a></li>
+</ul>
+</nav>
+<h1 id="introduction">Introduction</h1>
+<p>L’objectif de ce projet est de coupler simulation numérique et optimisation : il faut minimiser les dégats d’un feu de fôret en défrichant un rectangle de forêt. L’application dans le monde réel serait la prévention des feux de forêt à l’aide d’une carte de la densité de la forêt ainsi ainsi qu’une carte des vents les plus fréquents. A partir (d’une version plus sophistiquée) de notre programme, on pourrait identifier les zones intéressantes à défricher pour arrêter les incendies. Dans un premier temps, on va modéliser le feu de forêt par un couple d’équations différentielles partielles non-linéaires du second ordre à une dimension de temps et deux d’espace. Pour résoudre ce système d’équation, on va utiliser la méthode des différences finies (espace) et la méthode d’Euler explicite (temps). Dans un second temps, on s’intéressera à l’algorithme du simplex pour optimiser la position et la taille d’un rectangle de coupe-feu.</p>
+<h1 id="simulation">Simulation</h1>
+<p>La première étape de ce projet est d’avoir une simulation de feu de forêt. On commence par créer un modèle régit par une équation différentielle partielle, ensuite on discrétise ce modèle, et enfin on l’implémente. J’ai choisi d’utiliser Python pour ce projet car je connais bien ce langage.</p>
+<h2 id="modèle-continu">Modèle continu</h2>
+<h3 id="champs-considérés">Champs considérés</h3>
+<p>On considère deux champs scalaires :</p>
+<ul>
+<li>la température <span class="math inline">T(x, y, t)</span></li>
+<li>la matière combustible <span class="math inline">c(x, y, t)</span> avec <span class="math inline">t \in I = [0, 2.5]</span> et <span class="math inline">(x, y) \in \Omega = [0, 1]^2</span>.</li>
+</ul>
+<p>On considère aussi un champ vectoriel :</p>
+<ul>
+<li>le vent <span class="math inline">\overrightarrow{V}(x, y) = (u(x, y), v(x, y))</span> avec <span class="math inline">u(x, y) = \cos(\pi y)</span> et <span class="math inline">v(x, y) = 0.6 \sin(\pi (x + 0.2) / 2)</span>.</li>
+</ul>
+<h3 id="conditions-initiales">Conditions initiales</h3>
+<p>À l’instant initial, on a - <span class="math inline">T(x, y, 0) = 0.2</span> si <span class="math inline">(x, y) \in \mathcal{B}(x_0, y_0, r_0)</span>, <span class="math inline">T(x, y, 0) = 0</span> ailleurs. <span class="math inline">x_0 = y_0 = 0.1</span>, <span class="math inline">r_0 = 0.05</span> - <span class="math inline">c(x, y, 0) = 5 + r(x, y)</span> où <span class="math inline">r</span> est une fonction aléatoire de <span class="math inline">\Omega</span>.</p>
+<p>À l’origine, on avait <span class="math inline">r_0 = 0.01</span> et <span class="math inline">T = 5</span> dans le cercle, mais <span class="math inline">r_0</span> était de l’ordre de <span class="math inline">\Delta x</span> (voir la partie Discétisation) alors j’ai pris <span class="math inline">r_0 = 0.05 = 0.01 \times 5</span> et <span class="math inline">T = 0.2 = 5 \times 5^{-2}</span> dans le cercle pour compenser. One devrait avoir une simulation plus précise.</p>
+<h3 id="dynamique">Dynamique</h3>
+<p>Il y a combustion lorsque <span class="math inline">T \geq 0.05</span> et <span class="math inline">c \geq 0</span>.</p>
+<p>On a affaire à un modèle convection-diffusion-réaction.</p>
+<h4 id="conservation-dénergie-température">Conservation d’énergie (température)</h4>
+<p><span class="math display">\dfrac{\partial T}{\partial t} + \overrightarrow{V} \cdot \overrightarrow{\operatorname{grad}}(T) = \mu \Delta T + R(T, c) T</span></p>
+<p>On choisit <span class="math inline">\mu = 0.005</span>, et on définit la loi de réaction <span class="math inline">R</span> comme suit :</p>
+<p><span class="math display">R(T, c) =
+\begin{cases}
+10 &amp;\text{si $T \geq 0.05$ et $c \geq 0$} \\
+-5 &amp;\text{si $T \geq 0.05$ et $c &lt; 0 $} \\
+0  &amp;\text{si $T &lt; 0.05$}
+\end{cases}</span></p>
+<h4 id="conservation-de-la-masse-combustible">Conservation de la masse (combustible)</h4>
+<p><span class="math display">\dfrac{\partial c}{\partial t} = \tilde{R}(T, c) c</span></p>
+<p>avec :</p>
+<p><span class="math display">\tilde{R} =
+\begin{cases}
+-100 &amp;\text{si $T \geq 0.05$} \\
+0  &amp;\text{si $T &lt; 0.05$}
+\end{cases}</span></p>
+<h4 id="conditions-aux-limites">Conditions aux limites</h4>
+<p>On impose des conditions de Neumann à <span class="math inline">T</span> sur <span class="math inline">\partial \Omega</span> : <span class="math inline">\frac{\partial T}{\partial \vec{n}} = 0</span></p>
+<p>On ne donne pas de conditions aux limites pour <span class="math inline">c</span> car son équation ne comporte pas de dérivée spatiale.</p>
+<h2 id="discrétisation">Discrétisation</h2>
+<h3 id="espace">Espace</h3>
+<p>On utilise la méthode des différences finies, donc on discrétise <span class="math inline">\Omega</span> (carré unité) en <span class="math inline">(N+1)^2</span> points, <span class="math inline">N = 100</span>. On note <span class="math inline">\Delta x = \Delta y = \frac{1}{N}</span> et on obtient les points :</p>
+<p><span class="math display">(x_i, y_j)_{0 \leq i \leq N, 0 \leq j \leq N} = (i \Delta x, j \Delta y)_{0 \leq i \leq N, 0 \leq j \leq N}</span></p>
+<p>On note <span class="math inline">T_{i,j} = T(x_i, y_j)</span> à temps un temps donné.</p>
+<p><span class="math display">\left. \Delta T \right|_{i,j} \approx
+\frac{T_{i+1,j} - 2 T_{i,j} + T_{i-1,j}}{{\Delta x}^2}
++ \frac{T_{i,j+1} - 2 T_{i,j} + T_{i,j-1}}{{\Delta y}^2}</span></p>
+<p><span class="math display">\left. \overrightarrow{\operatorname{grad}}(T) \right|_{i,j} =
+\left. \begin{pmatrix}
+\frac{\partial T}{\partial x} \\[6pt]
+\frac{\partial T}{\partial y}
+\end{pmatrix} \right|_{i,j}</span> Avec : <span class="math display">\left. \frac{\partial T}{\partial x} \right|_{i,j} \approx
+\begin{cases}
+\frac{T_{i,j} - T_{i-1,j}}{\Delta x} \text{ si $u_{i,j} \geq 0$} \\[6pt]
+\frac{T_{i+1,j} - T_{i,j}}{\Delta x} \text{ si $u_{i,j} &lt; \ 0$}
+\end{cases}</span></p>
+<p><span class="math display">\left. \frac{\partial T}{\partial y} \right|_{i,j} \approx
+\begin{cases}
+\frac{T_{i,j} - T_{i,j-1}}{\Delta y} \text{ si $v_{i,j} \geq 0$} \\[6pt]
+\frac{T_{i,j+1} - T_{i,j}}{\Delta y} \text{ si $v_{i,j} &lt; \ 0$}
+\end{cases}</span></p>
+<h3 id="temps">Temps</h3>
+<p>On utilise la méthode d’Euler explicite. On calculera le pas de temps <span class="math inline">\Delta t</span> et le nombre de pas de temps <span class="math inline">N_t</span> lors de l’étude de stabilité.</p>
+<p>On se donne tout de même <span class="math inline">N_t + 1</span> points <span class="math inline">(t_n)_{0 \leq n \leq N_t} = (n \Delta t)_{0 \leq n \leq N_t}</span>, et on a :</p>
+<p><span class="math display">\left. \frac{\partial T}{\partial x} \right|_{i,j}^n \approx
+\frac{T_{i,j}^{n+1} - T_{i,j}^n}{\Delta t}</span></p>
+<p>donc, pour <span class="math inline">1 \leq i \leq N_x - 1</span>, <span class="math inline">1 \leq j \leq N_y - 1</span> et <span class="math inline">1 \leq n \leq N_t</span> :</p>
+<p><span class="math display">T_{i,j}^{n+1} = T_{i,j}^n + \Delta t \, \phi(T_{i,j}^n, T_{i-1,j}^n, T_{i+1,j}^n, T_{i,j-1}^n, T_{i,j+1}^n, c_{i,j}^n)</span></p>
+<h3 id="conditions-aux-limites-1">Conditions aux limites</h3>
+<p>Pour <span class="math inline">0 \leq i \leq N_x</span> :</p>
+<ul>
+<li>en <span class="math inline">y = 0</span>, <span class="math inline">T_{i,0} = T_{i,1}</span></li>
+<li>en <span class="math inline">y = 1</span>, <span class="math inline">T_{i,N_y} = T_{i,Ny-1}</span></li>
+</ul>
+<p>Pour <span class="math inline">0 \leq j \leq N_y</span></p>
+<ul>
+<li>en <span class="math inline">x = 0</span>, <span class="math inline">T_{0,j} = T_{1,j}</span></li>
+<li>en <span class="math inline">x = 1</span>, <span class="math inline">T_{N_y,j} = T_{N_y-1,j}</span></li>
+</ul>
+<h3 id="mise-à-jour-du-combustible">Mise à jour du combustible</h3>
+<p>On utilise aussi le schéma d’Euler explicite, soit pour <span class="math inline">0 \leq i \leq N_x</span>, <span class="math inline">0 \leq j \leq N_y</span> et <span class="math inline">1 \leq n \leq N_t</span> :</p>
+<p><span class="math display">c_{i,j}^{n+1} = c_{i,j}^n + \Delta t \, \tilde{\phi}(T_{i,j}^n, c_{i,j}^n)</span></p>
+<h3 id="stabilité">Stabilité</h3>
+<p>Le schéma d’Euler explicite est stable lorsque <span class="math inline">\Delta t \geq \min(\Delta t_c, \Delta t_d) / 4</span> où :</p>
+<ul>
+<li><span class="math inline">\Delta t_c = \dfrac{h}{\max \left(\| \overrightarrow{V} \|\right)}</span>, <span class="math inline">h = \min(\Delta x, \Delta y)</span> (convection)</li>
+<li><span class="math inline">\Delta t_d = \dfrac{h}{2 \mu}</span> (diffusion)</li>
+</ul>
+<h2 id="implémentation">Implémentation</h2>
+<p>L’algorithme d’implémentation est le suivant.</p>
+<pre><code>Initialisation de T, c, u, v
+Calcul de delta_t
+Boucle temporelle (n)
+    Boucle spatiale (i, j)
+        Calcul de Laplacien_T[i,j] et grad_T[i,j]
+        Calcul de T[i,j] au temps suivant
+    Boucle (i)
+        Conditions aux limites en y=0 et y=1
+    Boucle (j)
+        Conditions aux limites en x=0 et x=1
+    Boucle spatiale (i, j)
+        Calcul de c au temps suivant
+    Si pour tout (i, j), T[i,j] &lt; 0.05 alors
+        Quitter la boucle temporelle</code></pre>
+<p>Le critère d’arrêt sur le température sert à éviter une simulation inutilement trop longue. En effet, si elle est inférieure au point d’inflammation partout, la loi de réaction ne peut plus se faire, donc la température ne peut plus repasser au dessus du point d’inflammation, est donc plus aucun combustible ne sera consommé.</p>
+<h2 id="résultats">Résultats</h2>
+<p>J’ai utilisé Python pour l’implémentation. En vectorisant le code de la simulation, j’arrive à faire un pas de temps en environ 400 μs. Il faut entre 500 et 1000 pas de temps pour finir la simulation donc une simulation prend entre 250 ms et 500 ms. Voici la visualisation de cette simulation :</p>
+<video src="https://raw.githubusercontent.com/abavoil/wildfire-simulation/master/report_media/simulation.mp4" controls>
+</video>
+<p>La température du feu chute bien à t=0.3 s lorsqu’il arrive sur une zone moins dense en combustible. De plus, il suit bien le vent représenté par les flèches.</p>
+<p>La vidéo s’arrête à 90% lorsqu’il reste du feu mais il s’agit d’un bug du côté de l’enregistrement de la vidéo car on voit la simulation se terminer si on la visualise directement lors de l’exécution.</p>
+<h1 id="optimisation">Optimisation</h1>
+<p>Maintenant que l’on a une simulation, on peut retirer une zone de combustible, un rectangle dans notre cas, et voir ce que cela change à l’état final de la simulation. En particulier, on veut faire un coupe feu pas trop grand qui réduise au maximum la quantité de combustible consommée par le feu. On aimerait aussi qu’il ne soit pas trop prêt du feu, sinon il suffit de couper le combustible sous le feu, mais le résultat ainsi obtenu n’est pas intéressant.</p>
+<h2 id="problème-doptimisation">Problème d’optimisation</h2>
+<p>La variable que l’on cherche à optimiser est <span class="math inline">X = (x_{min}, x_{max}, y_{min}, y_{max})</span> qui définit le rectangle (possiblement vide) :</p>
+<p><span class="math display">\{(x, y) \in \Omega \ |\ x_{min} \leq x \leq x_{max} \ \land\ y_{min} \leq y \leq y_{max}\} \subset \Omega</span></p>
+<p>Pour évaluer la performance d’une valeur de <span class="math inline">X</span>, on définit la fonction de cout suivante :</p>
+<p><span class="math display">f(X)
+= \Delta x \Delta y \sum_{i,j} \left(c_{i,j}^0 - c_{i,j}^n\right)
++ 10 |(x_{max} - x_{min})(y_{max} - y_{min})|
++ 100 \max(0, 0.2 - y_{min})</span></p>
+<p>On cherche :</p>
+<p><span class="math display">X^* = \argmin_{X \in \Omega} f(X)</span></p>
+<h2 id="algorithmes-du-simplex">Algorithmes du simplex</h2>
+<p>Les algorithmes du simplex sont une classe d’algorithmes d’optimisation sans gradient. Pour effectuer une optimisation dans <span class="math inline">\mathbb{R}^n</span>, on génère un simplex de <span class="math inline">n+1</span> points, on évalue itérativement la fonction cout en chacun de ses sommets, et on le modifie selon ces valeurs pour qu’il se rapproche du minimum recherché.</p>
+<p>Comme ils n’utilisent pas de gradient, ces algorithmes sont peu sensibles au bruit, et ils ne demandent pas des calculs mathématiques compliqués. Cependant, ils demandent beaucoup d’appels à la fonction cout, qui nous prend de l’ordre de la demi-seconde à calculer.</p>
+<h3 id="nerlder-mead">Nerlder-Mead</h3>
+<p>L’algorithme de Nelder-Mead est l’algorithme du simplex le plus connu.</p>
+<p>L’algorithme est le suivant :</p>
+<pre><code>Initialisation du simplex (x0, ..., xn)
+alpha, beta, gamma = 1, 2, 1/2
+Boucle d&#39;optimisation
+    Calculer les valeurs de f en x0, ..., xn
+    xbest &lt;- le meilleur point
+    xworst &lt;- le pire point
+    xbar &lt;- barycentre des points privés de xworst
+    # mouvement de réflexion
+    xr = xbar + alpha * (xbar - xworst)
+    Si f(xr) &lt; f(xbest) alors
+        # mouvement d&#39;expansion
+        xe = xbar + beta * (xbar - xworst)
+        Si f(xe) &lt; f(xr) alors
+            xworst &lt;- xr
+    Sinon
+        Si f(xr) &lt; f(xworst) alors
+            xworst &lt;- xr
+        Sinon
+            # mouvement de contraction
+            xc = xbar + gamma * (xworst - xbar)
+            Si f(xc) &lt; f(xworst) alors
+                xworst &lt;- xc
+            Sinon
+                # mouvement de réduction
+                Boucle sur les sommets du simplex (xi)
+                    xi &lt;-  xbest + gamma * (xi - xbest)</code></pre>
+<p>Lors de la majorité des itérations, le pire point est modifié. Il a été prouvé que cet algorithme pouvait converger vers un point non-stationnaire ; de plus, il est difficilement parallélisable.</p>
+<h3 id="torczon">Torczon</h3>
+<p>Une variante a été proposée, l’algorithme de Torczon, accompagnée d’une preuve de convergence vers un point stationnaire ainsi que d’un algorithme parallélisé.</p>
+<pre><code>Initialisation du simplex (x0, ..., xn)
+alpha, beta, gamma = 1, 2, 1/2
+Boucle d&#39;optimisation
+    Calculer les valeurs de f en x0, ..., xn
+    xbest &lt;- le meilleur point
+    # mouvement de réflexion
+    Boucle sur i=0..n
+        xri &lt;-  (1 + alpha) * xbest - alpha * xi
+    Si au moins un f(xri) &lt; f(xi) alors
+        Boucle sur i=0..n
+            xi &lt;-  (1 - beta) * xbest + beta * xri
+    Sinon
+        Boucle sur i=0..n
+            xi &lt;-  (1 + gamma) * xbest - gamma * xri</code></pre>
+<h3 id="critères-darrêt">Critères d’arrêt</h3>
+<p>J’ai choisi d’utiliser quatre critères d’arrêt :</p>
+<ul>
+<li>le nombre maximal d’itérations, fixé à 400</li>
+<li>le nombre maximal d’appels à la fonction, aussi fixé à 400</li>
+<li>la valeur minimale du maximum sur <code>i</code> de la norme infini des <code>xi - xbest</code>, <span class="math inline">\displaystyle \max_{i,j} \left| {x^*}_j - \text{simplex[i]}_j \right|</span>, fixée à 0.01 (<span class="math inline">\Delta x</span>)</li>
+<li>la valeur minimale du maximum sur <code>i</code> de la valeur absolue de <code>f(xi) - f(xbest)</code>, aussi fixée à 0.01.</li>
+</ul>
+<h3 id="initialisation-du-simplex">Initialisation du simplex</h3>
+<p>Le moyen le plus simple pour initialiser le simplex est de prendre une matrice aléatoire 5 par 4 dont chaque coefficient est tiré d’une loi uniforme dans [0, 1]. Bien que cela puisse fonctionner dans certains cas, on se retrouve souvent avec de très mauvaises solution car :</p>
+<ul>
+<li>la probabilité de n’avoir AUCUN rectangle (pour tous les points du simplex, <span class="math inline">x_{min} &gt; x_{max}, y_{min} &gt; y_{max}</span>) est de <span class="math inline">\left(\frac{3}{4}\right)^5 \approx 23.7\%</span>. Dans ce cas on ne peut espérer que l’algorithme converge vers une solution intéressante. Avoir au moins un rectangle ne garanti pas le contraire. L’espérience montre qu’on se retrouve souvent avec un rectangle qui est de hauteur ou de largeur nulle. En effet, s’il est retourné, la fonction cout le force seulement à réduire son aire.</li>
+<li>ses proportions peuvent être très mauvaises. La probabilité qu’il soit dégénéré (au moins trois points alignés) est nulle, mais il peut être très fin selon une ou plusieurs dimensions. Cela pose notamment problème à Torczon car les proportions du simplex ne change pas au cours de l’algorithme, seulement sa position, son orientation et sa taille.</li>
+</ul>
+<p>Une alternative, déterministe, est de construire un simplex à partir d’un point initial <span class="math inline">x_0</span> et d’une distance <span class="math inline">d</span>, tous deux donnés par l’utilisateur. Le premier sommet est le point initial <span class="math inline">x_0</span>, les <span class="math inline">n</span> suivants sont donnés par <span class="math inline">x_i = x_0 + d \, e_i, \ i = 1, \dots, n</span> avec <span class="math inline">e_i</span> le vecteur dont la i-ème composante est <span class="math inline">1</span> et les autres sont nulles.</p>
+<h3 id="influence-de-la-position-de-linitilisation">Influence de la position de l’initilisation</h3>
+<p>La première initialisation est près du départ du feu mais seulement une partie affecte le feu, la deuxième se trouve dans le virage du feu, et la troisème à la fin du feu. Pour voir plus précisément où se trouve l’initialisation, on peut se réferrer à la vidéo de la simulation.</p>
+<p>On fixe <span class="math inline">d = 0.1</span>.</p>
+<table>
+<colgroup>
+<col style="width: 33%" />
+<col style="width: 33%" />
+<col style="width: 33%" />
+</colgroup>
+<thead>
+<tr class="header">
+<th style="text-align: center;">Initialisation près du départ du feu</th>
+<th style="text-align: center;">Initialisation au milieu du parcours du feu</th>
+<th style="text-align: center;">Initialisation à la fin du parcours feu</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td style="text-align: center;"><img src="https://raw.githubusercontent.com/abavoil/wildfire-simulation/master/report_media/benchmark_x0%3D%5B0.1%2C0.3%2C0.2%2C0.4%5D.png" /></td>
+<td style="text-align: center;"><img src="https://raw.githubusercontent.com/abavoil/wildfire-simulation/master/report_media/benchmark_x0%3D%5B0.4%2C0.8%2C0.4%2C0.6%5D.png" /></td>
+<td style="text-align: center;"><img src="https://raw.githubusercontent.com/abavoil/wildfire-simulation/master/report_media/benchmark_x0%3D%5B0.4%2C0.6%2C0.6%2C0.7%5D.png" /></td>
+</tr>
+</tbody>
+</table>
+<p>Dans le premier cas, les deux algorithmes n’arrivent pas à se rapprocher du feu, dans le deuxième cas, les deux réduisent l’aire du rectangle mais ne parviennent pas à remonter le feu pour l’éteindre plus tôt, et dans le troisème cas, ils semblent avoir du mal à trouver une configuration qui arrête le feu car le rectangle est trop petit et une forêt dense ravive le feu juste après le coupe feu.</p>
+<p>Pour ce problème, la solution donnée par les deux algorithmes est donc largement influencée par l’initialisation.</p>
+<h3 id="influence-de-la-taille-initiale-du-simplex">Influence de la taille initiale du simplex</h3>
+<p>On va maintenant essayer plusieurs tailles d’initialisation du simplex. D’abord un petit simplex de longueur d’arête <span class="math inline">d = 0.01 = \Delta x</span>, ensuite un moyen de longueur d’arête <span class="math inline">d = 0.1</span>, puis un grand de longueur d’arête <span class="math inline">d = 0.3</span>.</p>
+<p>On fixe <span class="math inline">x_0 = (0.45, 0.85, 0.4, 0.6)</span></p>
+<table>
+<thead>
+<tr class="header">
+<th style="text-align: center;">Petit simplex</th>
+<th style="text-align: center;">Simplex moyen</th>
+<th style="text-align: center;">Grand simplex</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td style="text-align: center;"><img src="https://raw.githubusercontent.com/abavoil/wildfire-simulation/master/report_media/benchmark_d%3D0.01.png" /></td>
+<td style="text-align: center;"><img src="https://raw.githubusercontent.com/abavoil/wildfire-simulation/master/report_media/benchmark_d%3D0.1.png" /></td>
+<td style="text-align: center;"><img src="https://raw.githubusercontent.com/abavoil/wildfire-simulation/master/report_media/benchmark_d%3D0.3.png" /></td>
+</tr>
+</tbody>
+</table>
+<p>Alors qu’on s’attendrait à ce que le plus petit simplex aie du mal à sortir de son voisinage, c’est celui qui trouve la meilleure solution. Je suppose que c’est surtout lié au hasard, et que lors des itérations, il a obtenu un bon point, ce qui n’est pas arrivé aux deux autres. La taille initiale a peu être une importance mais il est très improbable qu’une longueur d’arête de l’ordre de <span class="math inline">\Delta x</span> soit idéale.</p>
+<h3 id="une-simulation">Une simulation</h3>
+<p>Voici d’abord les différents meilleurs rectangles trouvés par Nelder-Mead en partant de <span class="math inline">x_0 = (0.4, 0.8, 0.4, 0.6)</span> avec <span class="math inline">d = 0.1</span> :</p>
+<video src="https://raw.githubusercontent.com/abavoil/wildfire-simulation/master/report_media/demo_nelder_mead_optimization_steps.mp4" controls>
+</video>
+<p>Et la simulation de la solution trouvée :</p>
+<video src="https://raw.githubusercontent.com/abavoil/wildfire-simulation/master/report_media/demo_nelder_mead_simulation.mp4" controls>
+</video>
+<p>La solution trouvée n’est pas optimale car on pourrait réduire <span class="math inline">x_max</span> pour avoir une aire plus petite (la partie toute à droite ne sert pas à éteindre le feu), ou encore mieux, rapprocher le coupe feu du départ de feu pour l’arrêter plus tôt, si cela ne nécessite pas une augmentation de la hauteur qui rende la pénalisation sur l’aire trop importante.</p>
+<h1 id="conclusion">Conclusion</h1>
+<p>Ces méthodes peinent globalement à trouver le minimum, selon l’initialisation, on trouve des solutions très variées qui ont des valeurs de fonction cout très différentes.</p>
+<p>Il est possible que modifier la fonction cout puisse donner des meilleurs résultats, comme jouer sur le coefficient de la pénalisation sur l’aire, ou bien rajouter des termes pour le pousser dans la bonne direction lorsque le rectangle sort du domaine de simulation ou bien est retourné (peut-être éviter si on peut fournir une bonne initialisation).</p>
+<p>Pour tirer des conclusions définitives sur l’influence de l’initialisation du simplex, il faut faire des tests en plus grand nombres, mais cela prend beaucoup de temps.</p>
+<p>Il ressort globalement que Nelder-Mead trouve plus vite une meilleure solution que Torczon, mais il ne faut pas oublier que Torczon peut être paralléliser, et donc exécuter les simulations cinq par cinq, voire plus si l’on a assez de processeurs.</p>
+</body>
+</html>
