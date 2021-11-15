@@ -265,7 +265,6 @@ class SimplexOptimizer(ABC):
             anim.save(filename=filepath, writer="ffmpeg", fps=fps)
         if show:
             plt.show()
-        plt.clf()
 
         return anim
 
@@ -292,8 +291,6 @@ class SimplexOptimizer(ABC):
             plt.savefig(filepath)
         if show:
             plt.show()
-
-        plt.clf()
 
 
 @dataclass

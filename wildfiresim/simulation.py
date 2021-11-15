@@ -236,6 +236,5 @@ class Simulation:
             anim.save(filename=filepath, writer="ffmpeg", fps=fps)
         if show:
             plt.show()
-        plt.clf()
 
         return anim
