@@ -57,7 +57,7 @@ def test_x0():
     for x0 in x0_values:
         plt.subplots(figsize=(8, 6))
         for optimizer_name in opt_names:
-            plt.plot(*cost_historic[str(x0)][optimizer_name], label=optimizer_name)  # type:ignore
+            plt.step(*cost_historic[str(x0)][optimizer_name], label=optimizer_name)  # type:ignore
         plt.legend()
         plt.grid(True)
         plt.xlim(left=0)
@@ -75,7 +75,7 @@ def test_dist():
         params = safe_load(parfile)
 
     dist_values = [0.01, 0.1, 0.3]
-    x0 = [0.45, 0.85, 0.4, 0.6]
+    x0 = [0.4, 0.7, 0.3, 0.5]
     opt_names = ("Nelder-Mead", "Torczon")
     opt_classes = (NelderMead, Torczon)
     # opt_colors = plt.get_cmap("hsv")(np.linspace(0, 1, len(opt_names), endpoint=False))
@@ -124,4 +124,4 @@ def test_dist():
 
 if __name__ == "__main__":
     test_x0()
-    test_dist()
+    # test_dist()
