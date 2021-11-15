@@ -181,7 +181,9 @@ class Simulation:
         if self.history is not None:
             self.history.append(deepcopy(state))
 
-    def animate(self, nb_frames: Optional[int] = 100, title: str = "", filepath: Optional[str] = None) -> FuncAnimation:
+    def animate(self, nb_frames: Optional[int] = 100, title: str = "", show: bool = True, filepath: Optional[str] = None) -> FuncAnimation:
+        """show: whether to call plt.show()
+        filepath: where to save the animation. The animation is not saved if None"""
         if self.history is None:
             raise NoHistoryException()
 
@@ -189,7 +191,8 @@ class Simulation:
             nb_frames = len(self.history)
 
         X, Y = self.forest.X, self.forest.Y
-        fig, ax = plt.subplots()
+
+        fig, ax = plt.subplots(figsize=(8, 6))
 
         fuel = ax.pcolormesh(X, Y, np.zeros_like(X), vmin=0, vmax=10, cmap=plt.cm.YlGn, shading="nearest")  # type: ignore
         fuel_cb = fig.colorbar(fuel, ax=ax)
@@ -230,10 +233,9 @@ class Simulation:
         anim = FuncAnimation(fig, animate, init_func=init, frames=frames, interval=1000 / 30, repeat=True, repeat_delay=1000, blit=True)  # type: ignore
 
         if filepath is not None:
-            plt.subplots(figsize=(8, 6))
             anim.save(filename=filepath, writer="ffmpeg", fps=fps)
-            sleep(1)
-        else:
+        if show:
             plt.show()
+        plt.clf()
 
         return anim

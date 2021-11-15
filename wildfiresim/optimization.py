@@ -69,7 +69,17 @@ class OptimizationState:
         return np.abs(self.fsimplex[1:] - self.get_fbest()).max()
 
     @staticmethod
-    def create_initial_state(
+    def create_initial_state(counted_function: CountedFunction, x0: OptVar, dist: float) -> OptimizationState:
+        """right-angled isocele simplex with edges of length dist"""
+        ndim = x0.size
+        simplex = np.repeat(x0.reshape(1, -1), ndim + 1, 0)
+        for i in range(ndim):
+            simplex[i + 1][i] += dist
+
+        return OptimizationState(0, 0, simplex=simplex, counted_function=counted_function)
+
+    @staticmethod
+    def create_initial_state_rng(
         counted_function: CountedFunction, ndim: int, rng: Optional[Union[int, np.random.Generator]] = None,
     ) -> OptimizationState:
         """
@@ -80,17 +90,6 @@ class OptimizationState:
             rng = np.random.default_rng(rng)
 
         simplex = rng.uniform(0, 1, (ndim + 1, ndim))
-
-        return OptimizationState(0, 0, simplex=simplex, counted_function=counted_function)
-
-    @staticmethod
-    def create_initial_state_nonrng(counted_function: CountedFunction, x0: OptVar, dist: float) -> OptimizationState:
-        """right-angled isocele simplex around x0 with edges of length 2*dist"""
-        ndim = x0.size
-        simplex = np.repeat(x0.reshape(1, -1), ndim + 1, 0)
-        simplex[0] -= dist
-        for i in range(ndim):
-            simplex[i + 1][i] += dist
 
         return OptimizationState(0, 0, simplex=simplex, counted_function=counted_function)
 
@@ -175,7 +174,6 @@ class SimplexOptimizer(ABC):
         )
 
     def _print_row(self, state: OptimizationState, movement: str, verbose: bool):
-        rounding = 2
         vprint(
             self.pattern.format(
                 *map(
@@ -183,11 +181,11 @@ class SimplexOptimizer(ABC):
                     (
                         state.nb_iter,
                         state.nb_calls,
-                        round(state.get_spread(), rounding),
-                        round(state.get_fspread(), rounding),
+                        round(state.get_spread(), 3),
+                        round(state.get_fspread(), 3),
                         movement,
-                        np.round(state.get_best(), rounding),
-                        round(state.get_fbest(), rounding),
+                        np.round(state.get_best(), 2),
+                        round(state.get_fbest(), 3),
                     ),
                 )
             ),
@@ -195,9 +193,13 @@ class SimplexOptimizer(ABC):
             timestamp=True,
         )
 
-    def animate(self, initial_state: SimulationState, simulation: Simulation, title: str = "", filepath: Optional[str] = None) -> FuncAnimation:
+    def animate(
+        self, initial_state: SimulationState, simulation: Simulation, title: str = "", show: bool = True, filepath: Optional[str] = None
+    ) -> FuncAnimation:
         """
         initial_state: The initial state used to compute the cost function
+        show: whether to call plt.show()
+        filepath: where to save the animation. The animation is not saved if None
         """
 
         if self.history is None:
@@ -212,7 +214,7 @@ class SimplexOptimizer(ABC):
 
         X, Y = simulation.forest.X, simulation.forest.Y
 
-        fig, ax = plt.subplots()
+        fig, ax = plt.subplots(figsize=(8, 6))
 
         fuel = ax.pcolormesh(X, Y, sim_final_state_no_firewall.c, vmin=0, vmax=10, cmap=plt.cm.YlGn, shading="nearest")  # type: ignore
         fuel_cb = fig.colorbar(fuel, ax=ax)
@@ -260,32 +262,38 @@ class SimplexOptimizer(ABC):
         anim = FuncAnimation(fig, animate, init_func=init, frames=len(self.history), interval=1000 / fps, repeat=True, repeat_delay=2000, blit=True)  # type: ignore
 
         if filepath is not None:
-            plt.subplots(figsize=(8, 6))
             anim.save(filename=filepath, writer="ffmpeg", fps=fps)
-        else:
+        if show:
             plt.show()
+        plt.clf()
 
         return anim
 
-    def plot_cost(self, title: str = "", filepath: Optional[str] = None):
+    def get_cost_historic(self) -> Tuple[List[int], List[float]]:
+        """Get the list of call counts and the list of function value at these counts"""
+        return deepcopy(([state.nb_calls for state in self.history], [state.get_fbest() for state in self.history]))  # type: ignore
+
+    def plot_cost(self, title: str = "", show: bool = True, filepath: Optional[str] = None):
         if self.history is None:
             raise NoHistoryException()
 
-        call_counts = [state.nb_calls for state in self.history]  # type: ignore
-        costs = [state.get_fbest() for state in self.history]  # type: ignore
+        call_counts, costs = self.get_cost_historic()
 
-        plt.step(call_counts, costs, where="post", marker="x", markeredgecolor="k", markersize=10)
+        plt.subplots(figsize=(8, 6))
+        plt.step(call_counts, costs, where="post")
         plt.title(title + "\nValue of the cost function against the number of calls")
         plt.grid(True)
         plt.ylim((0, 1.1 * costs[0]))
         plt.xlim(left=0)
         plt.xlabel("Number of calls")
         plt.ylabel("Best value")
+
         if filepath is not None:
-            # plt.subplots(figsize=(8, 6))
             plt.savefig(filepath)
-        else:
+        if show:
             plt.show()
+
+        plt.clf()
 
 
 @dataclass
@@ -363,14 +371,14 @@ class Torczon(SimplexOptimizer):
         simplex = state.simplex
         fsimplex = state.fsimplex
         best, fbest = simplex[0].copy(), fsimplex[0].copy()
-        reflexion = (1 + self.alpha) * best - self.alpha * simplex
+        reflexion = (1 + self.alpha) * best - self.alpha * simplex[1:]
         freflexion = np.array([counted_function(x) for x in reflexion])
         if any(freflexion < fbest):
             movement = "Expansion"
-            simplex[:] = (1 + self.beta) * best - self.beta * simplex
+            simplex[1:] = (1 + self.beta) * best - self.beta * simplex[1:]
         else:
             movement = "Contraction"
-            simplex[:] = (1 - self.gamma) * best + self.gamma * simplex
-        fsimplex[:] = np.array([counted_function(x) for x in simplex])
+            simplex[1:] = (1 - self.gamma) * best + self.gamma * simplex[1:]
+        fsimplex[1:] = np.array([counted_function(x) for x in simplex[1:]])
 
         return movement

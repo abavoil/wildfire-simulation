@@ -1,5 +1,5 @@
 from copy import deepcopy
-from typing import List, Tuple
+from typing import List, Optional, Tuple
 
 import numpy as np
 from matplotlib.pyplot import show
@@ -31,7 +31,12 @@ def cost_function(x: OptVar, simulation: Simulation, initial_state: SimulationSt
 
 
 def best_firewall_anim(
-    final_opt_state: OptimizationState, simulation: Simulation, initial_state: SimulationState, optimizer_name: str, show_plots: bool
+    final_opt_state: OptimizationState,
+    simulation: Simulation,
+    initial_state: SimulationState,
+    optimizer_name: str,
+    filepath: Optional[str],
+    show_plots: bool,
 ):
     initial_state = deepcopy(initial_state)
     x = final_opt_state.get_best()
@@ -39,9 +44,7 @@ def best_firewall_anim(
     initial_state.cut_trees(simulation.forest.X, simulation.forest.Y, *x)
     simulation.simulate(initial_state=initial_state, track_state=True)
     simulation.animate(
-        nb_frames=100,
-        title=f"Solution de {optimizer_name}\nx = {np.round(x, 2)}, {value =:.2f}",
-        filepath=make_file_path(f"{optimizer_name}'s solution simulation", "mp4", show_plots),
+        nb_frames=100, title=f"Solution de {optimizer_name}\nx = {np.round(x, 2)}, {value =:.2f}", filepath=filepath, show=show_plots
     )
 
 
@@ -51,12 +54,17 @@ def print_msg(msg: str, *args, indent: int = 0, **kwargs):
     print(f"{line_return}{tab * indent}*** {msg} ***", *args, **kwargs)
 
 
-def make_file_path(filename: str, ext: str, show_plots: bool):
-    return None if show_plots else f"img_out/{filename} - {get_timestamp('%Y%m%dT%H%M%S')}.{ext}"
+def make_file_path(dir: Optional[str], filename: str = None, ext: str = None) -> Optional[str]:
+    """if dir is None, returns None"""
+    if dir is None:
+        return None
+    else:
+        return f"{dir}/{get_timestamp('%Y%m%dT%H%M%S')} - {filename}.{ext}"
 
 
 def main():
     show_plots = True
+    out_dir = "img_out"
     seed = 3
     param_file = "params.yml"
 
@@ -71,7 +79,7 @@ def main():
     # Simulation
     print_msg("Running the simulation without a firewall")
     simulation.simulate(initial_state=initial_state, track_state=True, verbose=True)
-    simulation.animate(nb_frames=100, title="Simulation sans coupe-feu", filepath=make_file_path("blank simulation", "mp4", show_plots))
+    simulation.animate(nb_frames=100, title="Simulation sans coupe-feu", filepath=make_file_path(out_dir, "blank simulation", "mp4"))
 
     # Optimisation
     print_msg("Running the optimization algorithms")
@@ -80,22 +88,30 @@ def main():
         print_msg(optimizer_name, indent=1)
         optimizer = OptimizerClass(**{**params["optimizer"], **params[optimizer_name]})
         counted_function = CountedFunction(function=cost_function, funckwargs=funckwargs)
-        # initial_opt_state = OptimizationState.create_initial_state(counted_function=counted_function, ndim=4, rng=seed)
-        initial_opt_state = OptimizationState.create_initial_state_nonrng(
-            counted_function=counted_function, x0=np.array([0.4, 0.6, 0.5, 0.7]), dist=0.3
+        # initial_opt_state = OptimizationState.create_initial_state_rng(counted_function=counted_function, ndim=4, rng=seed)
+        initial_opt_state = OptimizationState.create_initial_state(
+            counted_function=counted_function, x0=np.array([0.2, 0.6, 0.2, 0.6]), dist=0.01
         )
         final_opt_state, _ = optimizer.minimize(
             counted_function=counted_function, initial_opt_state=initial_opt_state, track_cost=True, verbose=True
         )
 
-        optimizer.plot_cost(title=optimizer_name, filepath=make_file_path(f"{optimizer_name} cost", "png", show_plots))
+        optimizer.plot_cost(title=optimizer_name, filepath=make_file_path(out_dir, f"{optimizer_name} cost", "png"), show=show_plots)
         optimizer.animate(
             initial_state=initial_state,
             simulation=simulation,
             title=optimizer_name,
-            filepath=make_file_path(f"{optimizer_name} iterations", "mp4", show_plots),
+            filepath=make_file_path(out_dir, f"{optimizer_name} iterations", "mp4"),
+            show=show_plots,
         )
-        best_firewall_anim(final_opt_state, simulation, initial_state, optimizer_name, show_plots=show_plots)
+        best_firewall_anim(
+            final_opt_state=final_opt_state,
+            simulation=simulation,
+            initial_state=initial_state,
+            optimizer_name=optimizer_name,
+            filepath=make_file_path(out_dir, f"{optimizer_name}'s solution simulation", "mp4"),
+            show_plots=show_plots,
+        )
 
 
 if __name__ == "__main__":
