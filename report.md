@@ -11,8 +11,8 @@ date: "12 novembre 2021"
 
 # Introduction
 
-L'objectif de ce projet est de coupler simulation numérique et optimisation : il faut minimiser les dégats d'un feu de fôret en défrichant un rectangle de forêt.
-L'application dans le monde réel serait la prévention des feux de forêt à l'aide d'une carte de la densité de la forêt ainsi ainsi qu'une carte des vents les plus fréquents. A partir (d'une version plus sophistiquée) de notre programme, on pourrait identifier les zones intéressantes à défricher pour arrêter les incendies.
+L'objectif de ce projet est de coupler simulation numérique et optimisation : il faut minimiser les dégâts d'un feu de forêt en défrichant un rectangle de forêt.
+L'application dans le monde réel serait la prévention des feux de forêt à l'aide d'une carte de la densité de la forêt ainsi qu'une carte des vents les plus fréquents. A partir (d'une version plus sophistiquée) de notre programme, on pourrait identifier les zones intéressantes à défricher pour arrêter les incendies.
 Dans un premier temps, on va modéliser le feu de forêt par un couple d'équations différentielles partielles non-linéaires du second ordre à une dimension de temps et deux d'espace. Pour résoudre ce système d'équation, on va utiliser la méthode des différences finies (espace) et la méthode d'Euler explicite (temps).
 Dans un second temps, on s'intéressera à l'algorithme du simplex pour optimiser la position et la taille d'un rectangle de coupe-feu.
 
@@ -41,7 +41,7 @@ On considère aussi un champ vectoriel :
  - $T(x, y, 0) = 0.2$ si $(x, y) \in \mathcal{B}(x_0, y_0, r_0)$, $T(x, y, 0) = 0$ ailleurs. $x_0 = y_0 = 0.1$, $r_0 = 0.05$
  - $c(x, y, 0) = 5 + r(x, y)$ où $r$ est une fonction aléatoire de $\Omega$.
 
- À l'origine, on avait $r_0 = 0.01$ et $T = 5$ dans le cercle, mais $r_0$ était de l'ordre de $\Delta x$ (voir la partie Discétisation) alors j'ai pris $r_0 = 0.05 = 0.01 \times 5$ et $T = 0.2 = 5 \times 5^{-2}$ dans le cercle pour compenser. One devrait avoir une simulation plus précise.
+ À l'origine, on avait $r_0 = 0.01$ et $T = 5$ dans le cercle, mais $r_0$ était de l'ordre de $\Delta x$ (voir la partie Discrétisation) alors j'ai pris $r_0 = 0.05 = 0.01 \times 5$ et $T = 0.2 = 5 \times 5^{-2}$ dans le cercle pour compenser. One devrait avoir une simulation plus précise.
 
 ### Dynamique
 
@@ -171,13 +171,13 @@ Boucle temporelle (n)
         Quitter la boucle temporelle
 ````
 
-Le critère d'arrêt sur le température sert à éviter une simulation inutilement trop longue. En effet, si elle est inférieure au point d'inflammation partout, la loi de réaction ne peut plus se faire, donc la température ne peut plus repasser au dessus du point d'inflammation, est donc plus aucun combustible ne sera consommé.
+Le critère d'arrêt sur la température sert à éviter une simulation inutilement trop longue. En effet, si elle est inférieure au point d'inflammation partout, la loi de réaction ne peut plus se faire, donc la température ne peut plus repasser au-dessus du point d'inflammation, est donc plus aucun combustible ne sera consommé.
 
 ## Résultats
 
 J'ai utilisé Python pour l'implémentation. En vectorisant le code de la simulation, j'arrive à faire un pas de temps en environ 400 &mu;s. Il faut entre 500 et 1000 pas de temps pour finir la simulation donc une simulation prend entre 250 ms et 500 ms. Voici la visualisation de cette simulation :
 
-<video src="https://raw.githubusercontent.com/abavoil/wildfire-simulation/master/report_media/simulation.mp4" controls loop></video>
+<video src="https://raw.githubusercontent.com/abavoil/wildfire-simulation/master/report_media/simulation.mp4" controls></video>
 
 
 La température du feu chute bien à t=0.3 s lorsqu'il arrive sur une zone moins dense en combustible. De plus, il suit bien le vent représenté par les flèches.
@@ -186,7 +186,7 @@ La vidéo s'arrête à 90% lorsqu'il reste du feu mais il s'agit d'un bug du cô
 
 # Optimisation
 
-Maintenant que l'on a une simulation, on peut retirer une zone de combustible, un rectangle dans notre cas, et voir ce que cela change à l'état final de la simulation. En particulier, on veut faire un coupe feu pas trop grand qui réduise au maximum la quantité de combustible consommée par le feu. On aimerait aussi qu'il ne soit pas trop prêt du feu, sinon il suffit de couper le combustible sous le feu, mais le résultat ainsi obtenu n'est pas intéressant.
+Maintenant que l'on a une simulation, on peut retirer une zone de combustible, un rectangle dans notre cas, et voir ce que cela change à l'état final de la simulation. En particulier, on veut faire un coupe-feu pas trop grand qui réduise au maximum la quantité de combustible consommée par le feu. On aimerait aussi qu'il ne soit pas trop prêt du feu, sinon il suffit de couper le combustible sous le feu, mais le résultat ainsi obtenu n'est pas intéressant.
 
 ## Problème d'optimisation
 
@@ -280,39 +280,60 @@ J'ai choisi d'utiliser quatre critères d'arrêt :
 
 ### Initialisation du simplex
 
-Le moyen le plus simple pour initialiser le simplex est de prendre une matrice aléatoire 5 par 4 dont chaque coefficient est tiré d'une loi uniforme dans [0, 1]. Bien que cela puisse fonctionner dans certains cas, on se retrouve souvent avec de très mauvaises solution car :
+Le moyen le plus simple pour initialiser le simplex est de prendre une matrice aléatoire 5 par 4 dont chaque coefficient est tiré d'une loi uniforme dans [0, 1]. Bien que cela puisse fonctionner dans certains cas, on se retrouve souvent avec de très mauvaises solutions car :
 
- - la probabilité de n'avoir AUCUN rectangle (pour tous les points du simplex, $x_{min} > x_{max}, y_{min} > y_{max}$) est de $\left(\frac{3}{4}\right)^5 \approx 23.7\%$. Dans ce cas on ne peut espérer que l'algorithme converge vers une solution intéressante. Avoir au moins un rectangle ne garanti pas le contraire. L'espérience montre qu'on se retrouve souvent avec un rectangle qui est de hauteur ou de largeur nulle. En effet, s'il est retourné, la fonction cout le force seulement à réduire son aire.
- - ses proportions peuvent être très mauvaises. La probabilité qu'il soit dégénéré (au moins trois points alignés) est nulle, mais il peut être très fin selon une ou plusieurs dimensions. Cela pose notamment problème à Torczon car les proportions du simplex ne change pas au cours de l'algorithme, seulement sa position, son orientation et sa taille.
+ - la probabilité de n'avoir AUCUN rectangle (pour tous les points du simplex, $x_{min} > x_{max}, y_{min} > y_{max}$) est de $\left(\frac{3}{4}\right)^5 \approx 23.7\%$. Dans ce cas on ne peut espérer que l'algorithme converge vers une solution intéressante. Avoir au moins un rectangle ne garantit pas le contraire. L'expérience montre qu'on se retrouve souvent avec un rectangle qui est de hauteur ou de largeur nulle. En effet, s'il est retourné, la fonction cout le force seulement à réduire son aire.
+ - ses proportions peuvent être très mauvaises. La probabilité qu'il soit dégénéré (au moins trois points alignés) est nulle, mais il peut être très fin selon une ou plusieurs dimensions. Cela pose notamment problème à Torczon car les proportions du simplex ne changent pas au cours de l'algorithme, seulement sa position, son orientation et sa taille.
 
 Une alternative, déterministe, est de construire un simplex à partir d'un point initial $x_0$ et d'une distance $d$, tous deux donnés par l'utilisateur. Le premier sommet est le point initial $x_0$, les $n$ suivants sont donnés par $x_i = x_0 + d \, e_i, \ i = 1, \dots, n$ avec $e_i$ le vecteur dont la i-ème composante est $1$ et les autres sont nulles.
 
-## Résultats
-
-Une fonction simulation (x=None, visualisation: bool, save_dir: str | None) -> cout(x)
-Une fonction optimization (x0, fct_cout, fct_cout_params, algo_class, algo_params, visualisation: bool, save_dir: str | None) -> historique(nbcalls, cout)
-
-### Une simulation
-
 ### Influence de la position de l'initilisation
+
+La première initialisation est près du départ du feu mais seulement une partie affecte le feu, la deuxième se trouve dans le virage du feu, et la troisième à la fin du feu. Pour voir plus précisément où se trouve l'initialisation, on peut se réferrer à la vidéo de la simulation.
 
 On fixe $d = 0.1$.
 
 |Initialisation près du départ du feu|Initialisation au milieu du parcours du feu|Initialisation à la fin du parcours feu|
 :--:|:--:|:--:
-[]()|[]()|[]()
-[]()|[]()|[]()
-[]()|[]()|[]()
+![](https://raw.githubusercontent.com/abavoil/wildfire-simulation/master/report_media/benchmark_x0%3D%5B0.1%2C0.3%2C0.2%2C0.4%5D.png)|![](https://raw.githubusercontent.com/abavoil/wildfire-simulation/master/report_media/benchmark_x0%3D%5B0.4%2C0.8%2C0.4%2C0.6%5D.png)|![](https://raw.githubusercontent.com/abavoil/wildfire-simulation/master/report_media/benchmark_x0%3D%5B0.4%2C0.6%2C0.6%2C0.7%5D.png)
+
+Dans le premier cas, les deux algorithmes n'arrivent pas à se rapprocher du feu, dans le deuxième cas, les deux réduisent l'aire du rectangle mais ne parviennent pas à remonter le feu pour l'éteindre plus tôt, et dans le troisième cas, ils semblent avoir du mal à trouver une configuration qui arrête le feu car le rectangle est trop petit et une forêt dense ravive le feu juste après le coupe-feu.
+
+Pour ce problème, la solution donnée par les deux algorithmes est donc largement influencée par l'initialisation.
+
 
 ### Influence de la taille initiale du simplex
 
+On va maintenant essayer plusieurs tailles d'initialisation du simplex. D'abord un petit simplex de longueur d'arête $d = 0.01 = \Delta x$, ensuite un moyen de longueur d'arête $d = 0.1$, puis un grand de longueur d'arête $d = 0.3$.
+
+On fixe $x_0 = (0.45, 0.85, 0.4, 0.6)$
+
 |Petit simplex|Simplex moyen|Grand simplex|
 :--:|:--:|:--:
-[]()|[]()|[]()
-[]()|[]()|[]()
-[]()|[]()|[]()
+![](https://raw.githubusercontent.com/abavoil/wildfire-simulation/master/report_media/benchmark_d%3D0.01.png)|![](https://raw.githubusercontent.com/abavoil/wildfire-simulation/master/report_media/benchmark_d%3D0.1.png)|![](https://raw.githubusercontent.com/abavoil/wildfire-simulation/master/report_media/benchmark_d%3D0.3.png)
+
+Alors qu'on s'attendrait à ce que le plus petit simplex ait du mal à sortir de son voisinage, c'est celui qui trouve la meilleure solution. Je suppose que c'est surtout lié au hasard, et que lors des itérations, il a obtenu un bon point, ce qui n'est pas arrivé aux deux autres. La taille initiale a peut-être une importance mais il est très improbable qu'une longueur d'arête de l'ordre de $\Delta x$ soit idéale.
+
+### Une simulation
+
+Voici d'abord les différents meilleurs rectangles trouvés par Nelder-Mead en partant de $x_0 = (0.4, 0.8, 0.4, 0.6)$ avec $d = 0.1$ :
+
+
+<video src="https://raw.githubusercontent.com/abavoil/wildfire-simulation/master/report_media/demo_nelder_mead_optimization_steps.mp4" controls></video>
+
+Et la simulation de la solution trouvée :
+
+<video src="https://raw.githubusercontent.com/abavoil/wildfire-simulation/master/report_media/demo_nelder_mead_simulation.mp4" controls></video>
+
+La solution trouvée n'est pas optimale car on pourrait réduire $x_max$ pour avoir une aire plus petite (la partie toute à droite ne sert pas à éteindre le feu), ou encore mieux, rapprocher le coupe-feu du départ de feu pour l'arrêter plus tôt, si cela ne nécessite pas une augmentation de la hauteur qui rende la pénalisation sur l'aire trop importante.
+
 
 # Conclusion
 
-Dépendant de l'initialisation, bien si on a une idée de la solution, mais risque de rester dans un minimum local biaisé par notre connaissance.
-Améliorer la fonction cout: terme pour éviter les rectangles dégénérés (minimum local avec aire = 0), terme pour pénaliser un rectangle inverser, des points qui sortent du rectangle.
+Ces méthodes peinent globalement à trouver le minimum, selon l'initialisation, on trouve des solutions très variées qui ont des valeurs de fonction cout très différentes.
+
+Il est possible que modifier la fonction cout puisse donner des meilleurs résultats, comme jouer sur le coefficient de la pénalisation sur l'aire, ou bien rajouter des termes pour le pousser dans la bonne direction lorsque le rectangle sort du domaine de simulation ou bien est retourné (peut-être éviter si on peut fournir une bonne initialisation).
+
+Pour tirer des conclusions définitives sur l'influence de l'initialisation du simplex, il faudrait faire des tests en plus grands nombres, mais cela prend beaucoup de temps.
+
+Il ressort globalement que Nelder-Mead trouve plus vite une meilleure solution que Torczon, mais il ne faut pas oublier que Torczon peut être paralléliser, et donc exécuter les simulations cinq par cinq, voire plus si l'on a assez de processeurs.
