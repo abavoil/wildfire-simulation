@@ -65,7 +65,8 @@ def make_file_path(dir: Optional[str], filename: str = None, ext: str = None) ->
 def main():
     show_plots = True
     out_dir = "img_out"
-    seed = 3
+    # out_dir = None
+    seed = 1
     param_file = "params.yml"
 
     print_msg(f"Parsing parameters from {param_file}")
@@ -90,7 +91,7 @@ def main():
         counted_function = CountedFunction(function=cost_function, funckwargs=funckwargs)
         # initial_opt_state = OptimizationState.create_initial_state_rng(counted_function=counted_function, ndim=4, rng=seed)
         initial_opt_state = OptimizationState.create_initial_state(
-            counted_function=counted_function, x0=np.array([0.2, 0.6, 0.2, 0.6]), dist=0.01
+            counted_function=counted_function, x0=np.array([0.4, 0.8, 0.4, 0.6]), dist=0.1
         )
         final_opt_state, _ = optimizer.minimize(
             counted_function=counted_function, initial_opt_state=initial_opt_state, track_cost=True, verbose=True
